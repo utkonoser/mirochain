@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,6 +21,7 @@ import (
 	"mirochain/internal/persistent"
 	"mirochain/internal/profiling"
 	"mirochain/internal/security"
+	"mirochain/internal/vm"
 	"mirochain/internal/wallet"
 )
 
@@ -147,6 +150,10 @@ func main() {
 	// Создаем менеджер квантово-устойчивой криптографии
 	quantumResistantManager := crypto.NewQuantumResistantManager()
 
+	// Создаем виртуальную машину для смарт-контрактов
+	vmInstance := vm.NewVM(1000000) // 1M газа по умолчанию
+	slog.Info("Smart contracts VM initialized", "gas_limit", vmInstance.GetGasRemaining())
+
 	slog.Info("Security components initialized successfully")
 
 	// Создаем P2P сервер
@@ -203,9 +210,9 @@ func main() {
 	}
 
 	// Запускаем API сервер с интеграцией безопасности
-	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger,
-		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus,
-		consensusComparison, signatureManager, multisigManager, quantumResistantManager)
+	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger, 
+		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus, 
+		consensusComparison, signatureManager, multisigManager, quantumResistantManager, vmInstance)
 
 	// Ожидаем завершения
 	slog.Info("Node is running. Press Ctrl+C to stop.")
@@ -213,13 +220,13 @@ func main() {
 }
 
 // startAPIServer запускает API сервер с интеграцией безопасности
-func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{}, port int,
+func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{}, port int, 
 	metricsCollector *metrics.MetricsCollector, perfLogger *logging.PerformanceLogger,
 	attackProtection *security.AttackProtection, inputValidator *security.InputValidator,
 	apiRateLimiter *security.APIRateLimiter, posConsensus *consensus.ProofOfStake,
 	dposConsensus *consensus.DelegatedProofOfStake, consensusComparison *consensus.ConsensusComparison,
 	signatureManager *crypto.SignatureManager, multisigManager *crypto.MultiSigManager,
-	quantumResistantManager *crypto.QuantumResistantManager) {
+	quantumResistantManager *crypto.QuantumResistantManager, vmInstance *vm.VM) {
 	slog.Info("Starting API server with security integration", "p2p_port", port, "api_port", port+1000)
 
 	// Логируем информацию о компонентах безопасности
@@ -231,6 +238,11 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 		"signature_algorithms", signatureManager.GetSupportedAlgorithms(),
 		"multisig_support", "enabled",
 		"quantum_resistant_algorithms", quantumResistantManager.GetSupportedAlgorithms())
+
+	// Логируем информацию о смарт-контрактах
+	slog.Info("Smart contracts VM integrated",
+		"gas_limit", vmInstance.GetGasRemaining(),
+		"supported_opcodes", []string{"PUSH", "POP", "ADD", "SUB", "MUL", "DIV", "LOAD", "STORE", "SLOAD", "SSTORE", "JUMP", "JUMPI", "RETURN", "STOP"})
 
 	// Создаем и запускаем API сервер
 	// Используем реальный блокчейн для API сервера
@@ -245,6 +257,20 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 		err := apiServer.Start()
 		if err != nil {
 			slog.Error("Failed to start API server", "error", err)
+		}
+	}()
+
+	// Создаем и запускаем Contract API сервер
+	contractAPIPort := port + 2000 // Contract API на порту +2000 от P2P сервера
+	go func() {
+		mux := http.NewServeMux()
+		contractAPI := vm.NewContractAPI(vmInstance)
+		contractAPI.RegisterRoutes(mux)
+		
+		slog.Info("Starting Contract API server", "port", contractAPIPort)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", contractAPIPort), mux)
+		if err != nil {
+			slog.Error("Failed to start Contract API server", "error", err)
 		}
 	}()
 
