@@ -5,6 +5,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -29,13 +30,11 @@ func main() {
 	// Тестируем установку значений в хранилище
 	fmt.Println("\n2. Setting storage values...")
 	setStorageValue(contractAddress, "counter", "100")
-	setStorageValue(contractAddress, "owner", "alice")
 	setStorageValue(contractAddress, "balance", "1000")
 
 	// Тестируем получение значений из хранилища
 	fmt.Println("\n3. Getting storage values...")
 	getStorageValue(contractAddress, "counter")
-	getStorageValue(contractAddress, "owner")
 	getStorageValue(contractAddress, "balance")
 
 	// Тестируем получение всего хранилища
@@ -75,9 +74,19 @@ RETURN`
 	}
 	defer resp.Body.Close()
 
+	// Проверяем статус ответа
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("HTTP error: %d %s", resp.StatusCode, resp.Status)
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", string(body))
+		return ""
+	}
+
 	var result map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		log.Printf("Error decoding response: %v", err)
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", string(body))
 		return ""
 	}
 
@@ -110,9 +119,19 @@ func setStorageValue(address, key, value string) {
 	}
 	defer resp.Body.Close()
 
+	// Проверяем статус ответа
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("HTTP error: %d %s", resp.StatusCode, resp.Status)
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", string(body))
+		return
+	}
+
 	var result map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		log.Printf("Error decoding response: %v", err)
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", string(body))
 		return
 	}
 
@@ -135,9 +154,19 @@ func getStorageValue(address, key string) {
 	}
 	defer resp.Body.Close()
 
+	// Проверяем статус ответа
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("HTTP error: %d %s", resp.StatusCode, resp.Status)
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", string(body))
+		return
+	}
+
 	var result map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		log.Printf("Error decoding response: %v", err)
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", string(body))
 		return
 	}
 
@@ -155,9 +184,19 @@ func getContractStorage(address string) {
 	}
 	defer resp.Body.Close()
 
+	// Проверяем статус ответа
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("HTTP error: %d %s", resp.StatusCode, resp.Status)
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", string(body))
+		return
+	}
+
 	var result map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		log.Printf("Error decoding response: %v", err)
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", string(body))
 		return
 	}
 
@@ -176,9 +215,21 @@ func getContractStats() {
 	}
 	defer resp.Body.Close()
 
+	// Проверяем статус ответа
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("HTTP error: %d %s", resp.StatusCode, resp.Status)
+		// Попробуем прочитать тело ответа для отладки
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", string(body))
+		return
+	}
+
 	var stats map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&stats); err != nil {
 		log.Printf("Error decoding response: %v", err)
+		// Попробуем прочитать тело ответа для отладки
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", string(body))
 		return
 	}
 
