@@ -1,21 +1,26 @@
 # MiroChain - Блокчейн сеть на Go
 
 ## Описание проекта
-MiroChain - это реализация блокчейн сети на языке Go с поддержкой P2P сети, майнинга и системы кошельков.
+MiroChain - это полнофункциональная блокчейн сеть на языке Go с поддержкой P2P сети, майнинга, смарт-контрактов, токенов, NFT, sidechains и state channels.
 
 ## Архитектура
 
 ### Основные компоненты
 - **Core** - основные структуры данных и логика блокчейна
-- **Crypto** - криптографические функции
+- **Crypto** - криптографические функции и алгоритмы
 - **Network** - P2P сеть и коммуникация
 - **Mining** - алгоритм майнинга и консенсуса
 - **Wallet** - система кошельков
 - **API** - REST API и CLI интерфейс
+- **VM** - виртуальная машина для смарт-контрактов
+- **Tokens** - система токенов ERC-20
+- **NFT** - система NFT ERC-721
+- **Sidechains** - боковые цепи
+- **StateChannels** - каналы состояния
 
 ## План реализации
 
-Все основные этапы (1-10) уже реализованы! См. раздел "Что уже реализовано" ниже.
+Все основные этапы (1-13) уже реализованы! См. раздел "Что уже реализовано" ниже.
 
 ## Структура проекта
 
@@ -30,9 +35,15 @@ mirochain/
 │   ├── network/          # P2P сеть
 │   ├── mining/           # Майнинг
 │   ├── wallet/           # Система кошельков
-│   └── api/              # API сервер
+│   ├── api/              # API сервер
+│   ├── vm/               # Виртуальная машина
+│   ├── tokens/           # Система токенов
+│   ├── nft/              # Система NFT
+│   ├── sidechain/        # Sidechains
+│   └── statechannel/     # State Channels
 ├── pkg/                   # Публичные пакеты
 ├── tests/                 # Тесты
+├── examples/              # Примеры использования
 ├── configs/              # Конфигурационные файлы
 ├── docs/                 # Документация
 ├── go.mod
@@ -50,139 +61,267 @@ mirochain/
 
 MiroChain поддерживает гибкое переключение между различными криптографическими алгоритмами:
 
-### Доступные алгоритмы:
+### Классические алгоритмы
+- **ECDSA** - Elliptic Curve Digital Signature Algorithm
+- **Ed25519** - Edwards Curve Digital Signature Algorithm
+- **RSA** - Rivest-Shamir-Adleman
+- **Schnorr** - Schnorr Digital Signature Scheme
 
-**Классические (быстрые, но уязвимы к квантовым атакам):**
-- `ecdsa` - Быстрый, широко поддерживаемый
-- `ed25519` - Очень быстрый, хорош для высокой пропускной способности
-- `rsa` - Медленный, большие ключи, но хорошо установленный
-- `schnorr` - Быстрый, хорош для мультиподписей
+### Квантово-устойчивые алгоритмы
+- **SPHINCS+** - Stateless hash-based signatures
+- **Dilithium** - Lattice-based signatures
+- **Falcon** - Lattice-based signatures
+- **XMSS** - Stateful hash-based signatures
+- **LMS** - Leighton-Micali signatures
 
-**Квантово-устойчивые (защищены от квантовых атак):**
-- `sphincs+` - Наиболее безопасный, большие подписи, stateless
-- `dilithium` - Хороший баланс, умеренный размер, lattice-based
-- `falcon` - Компактные подписи, lattice-based
-- `xmss` - Stateful, хорош для ограниченных ресурсов
-- `lms` - Stateful, хорош для IoT устройств
+### Переключение алгоритмов
 
-### Стратегии переключения:
+```bash
+# Запуск с классическими алгоритмами
+go run cmd/node/main.go -algorithms=classic
 
-1. **Классическая** - Использовать только классические алгоритмы
-2. **Квантовая** - Использовать только квантово-устойчивые алгоритмы
-3. **Гибридная** - Поддерживать оба типа одновременно
-4. **Миграция** - Постепенно переходить с классических на квантово-устойчивые
-5. **Переговоры** - Позволить клиентам выбирать предпочитаемый алгоритм
+# Запуск с квантово-устойчивыми алгоритмами
+go run cmd/node/main.go -algorithms=quantum
 
-### Примеры использования:
+# Запуск со смешанными алгоритмами
+go run cmd/node/main.go -algorithms=mixed
 
-```go
-// Создание менеджеров
-classicManager := crypto.NewSignatureManager()
-quantumManager := crypto.NewQuantumResistantManager()
-
-// Генерация ключей
-ecdsaKey, _ := classicManager.GenerateKeyPair("ecdsa")
-dilithiumKey, _ := quantumManager.GenerateKeyPair("dilithium")
-
-// Подписание
-ecdsaSig, _ := classicManager.Sign("ecdsa", ecdsaKey.PrivateKey, data)
-dilithiumSig, _ := quantumManager.Sign("dilithium", dilithiumKey.PrivateKey, data)
-
-// Проверка
-ecdsaValid := classicManager.Verify(ecdsaSig, data)
-dilithiumValid, _ := quantumManager.Verify("dilithium", dilithiumKey.PublicKey, dilithiumSig, data)
+# Конфигурация через JSON
+go run cmd/node/main.go -config=algorithm_config.json
 ```
 
 ## Быстрый старт
 
+### Установка
+
 ```bash
-# Клонирование репозитория
-git clone <repository-url>
+git clone https://github.com/utkonoser/mirochain.git
 cd mirochain
+go mod download
+```
 
-# Установка зависимостей
-go mod tidy
+### Запуск узла
 
+```bash
+# Запуск узла с майнингом
+go run cmd/node/main.go -port=8080 -mining=true
+
+# Запуск узла без майнинга
+go run cmd/node/main.go -port=8080 -mining=false
+
+# Запуск с подключением к другим узлам
+go run cmd/node/main.go -peers="127.0.0.1:8081,127.0.0.1:8082"
+```
+
+### Использование CLI
+
+```bash
 # Создание кошелька
-go run cmd/wallet/main.go -create
+go run cmd/wallet/main.go create
 
-# Запуск узла
-go run cmd/node/main.go
+# Получение баланса
+go run cmd/wallet/main.go balance <address>
 
-# Запуск CLI кошелька
-go run cmd/wallet/main.go -list
+# Отправка транзакции
+go run cmd/wallet/main.go send <from> <to> <amount>
+```
 
-# Создание нового кошелька
-go run cmd/wallet/main.go -create
+## API Endpoints
 
-# Подпись сообщения
-go run cmd/wallet/main.go -sign <address> -message "Hello World"
+### Основной API (порт +1000)
+- `GET /api/blockchain/status` - Статус блокчейна
+- `GET /api/blockchain/blocks` - Список блоков
+- `GET /api/blockchain/blocks/{hash}` - Информация о блоке
+- `POST /api/blockchain/transactions` - Создание транзакции
+- `GET /api/blockchain/transactions/{hash}` - Информация о транзакции
+- `GET /api/blockchain/balance/{address}` - Баланс адреса
+- `GET /api/blockchain/utxos/{address}` - UTXO адреса
 
-# Проверка подписи
-go run cmd/wallet/main.go -verify <address> -message "Hello World"
+### WebSocket API (порт +1000)
+- `ws://localhost:9080/ws` - WebSocket подключение для real-time уведомлений
 
-# Запуск примера
-go run examples/basic_usage.go
+### DHT API (порт +2000)
+- `GET /api/dht/peers` - Список пиров
+- `GET /api/dht/stats` - Статистика DHT
+- `POST /api/dht/bootstrap` - Bootstrap DHT
 
-# Запуск P2P сети с API
+### Contract API (порт +2000)
+- `POST /api/contracts/deploy` - Деплой контракта
+- `POST /api/contracts/call` - Вызов контракта
+- `GET /api/contracts/{address}` - Информация о контракте
+- `GET /api/contracts` - Список контрактов
+- `GET /api/contracts/templates` - Шаблоны контрактов
+- `POST /api/contracts/compile` - Компиляция контракта
+- `POST /api/contracts/estimate-gas` - Оценка газа
+- `GET /api/contracts/gas-report` - Отчет по газу
+
+### Token API (порт +3000)
+- `POST /api/tokens/create` - Создание токена
+- `POST /api/tokens/transfer` - Перевод токенов
+- `POST /api/tokens/approve` - Одобрение токенов
+- `POST /api/tokens/transferFrom` - Перевод от имени
+- `GET /api/tokens/balance` - Баланс токенов
+- `GET /api/tokens/allowance` - Разрешение токенов
+- `POST /api/tokens/mint` - Создание токенов
+- `POST /api/tokens/burn` - Сжигание токенов
+- `GET /api/tokens/stats` - Статистика токенов
+- `GET /api/tokens/search` - Поиск токенов
+- `POST /api/tokens/export` - Экспорт токенов
+- `POST /api/tokens/import` - Импорт токенов
+- `GET /api/tokens/holders` - Держатели токенов
+- `GET /api/tokens/circulation` - Обращение токенов
+
+### NFT API (порт +4000)
+- `POST /api/nft/create-contract` - Создание NFT контракта
+- `POST /api/nft/mint` - Создание NFT
+- `POST /api/nft/transfer` - Перевод NFT
+- `POST /api/nft/approve` - Одобрение NFT
+- `POST /api/nft/setApprovalForAll` - Одобрение всех NFT
+- `POST /api/nft/transferFrom` - Перевод от имени
+- `GET /api/nft/ownerOf` - Владелец NFT
+- `GET /api/nft/getApproved` - Одобренный адрес
+- `GET /api/nft/isApprovedForAll` - Одобрение всех
+- `GET /api/nft/balanceOf` - Баланс NFT
+- `POST /api/nft/burn` - Сжигание NFT
+- `GET /api/nft/tokenURI` - URI токена
+- `GET /api/nft/contracts` - Список контрактов
+- `GET /api/nft/tokens` - Список токенов
+- `GET /api/nft/search` - Поиск NFT
+- `GET /api/nft/stats` - Статистика NFT
+- `POST /api/nft/export` - Экспорт NFT
+- `POST /api/nft/import` - Импорт NFT
+
+### Sidechain API (порт +5000)
+- `POST /api/sidechain/create` - Создание sidechain
+- `GET /api/sidechain/list` - Список sidechains
+- `GET /api/sidechain/{id}` - Информация о sidechain
+- `POST /api/sidechain/add-block` - Добавление блока
+- `POST /api/sidechain/add-transaction` - Добавление транзакции
+- `POST /api/sidechain/create-asset` - Создание актива
+- `GET /api/sidechain/assets` - Список активов
+- `POST /api/sidechain/bridge-transaction` - Мостовая транзакция
+- `POST /api/sidechain/cross-chain-message` - Кросс-чейн сообщение
+- `GET /api/sidechain/messages` - Список сообщений
+- `POST /api/sidechain/add-validator` - Добавление валидатора
+- `POST /api/sidechain/remove-validator` - Удаление валидатора
+- `GET /api/sidechain/validators` - Список валидаторов
+- `GET /api/sidechain/stats` - Статистика sidechain
+- `GET /api/sidechain/health` - Здоровье sidechain
+- `POST /api/sidechain/export` - Экспорт sidechain
+- `POST /api/sidechain/import` - Импорт sidechain
+- `GET /api/sidechain/transactions` - Транзакции sidechain
+- `GET /api/sidechain/blocks` - Блоки sidechain
+- `POST /api/sidechain/consensus` - Изменение консенсуса
+- `GET /api/sidechain/consensus` - Текущий консенсус
+- `POST /api/sidechain/upgrade` - Обновление sidechain
+
+### State Channel API (порт +6000)
+- `POST /api/statechannel/create` - Создание канала
+- `GET /api/statechannel/list` - Список каналов
+- `GET /api/statechannel/{id}` - Информация о канале
+- `POST /api/statechannel/deposit` - Депозит в канал
+- `POST /api/statechannel/withdraw` - Вывод из канала
+- `POST /api/statechannel/update-state` - Обновление состояния
+- `POST /api/statechannel/create-transaction` - Создание транзакции
+- `POST /api/statechannel/close` - Закрытие канала
+- `POST /api/statechannel/initiate-dispute` - Инициация спора
+- `POST /api/statechannel/settle` - Разрешение спора
+- `GET /api/statechannel/stats` - Статистика канала
+- `GET /api/statechannel/history` - История канала
+
+## Демонстрация функций
+
+### Основные демонстрации
+```bash
+# Демонстрация блокчейна
+go run examples/blockchain_demo.go
+
+# Демонстрация P2P сети
 go run examples/p2p_network.go
 
-# WebSocket уведомления (real-time)
+# Демонстрация майнинга
+go run examples/mining_demo.go
+
+# Демонстрация кошельков
+go run examples/wallet_demo.go
+
+# Демонстрация API
+go run examples/api_demo.go
+```
+
+### Расширенные демонстрации
+```bash
+# Демонстрация WebSocket
 go run -tags websocket_demo examples/websocket_demo.go
 
-# Простой тест WebSocket
-go run -tags websocket_simple examples/websocket_simple.go
-
-# DHT (Distributed Hash Table) демо
+# Демонстрация DHT
 go run -tags dht_demo examples/dht_demo.go
 
-# Gossip протокол демо
+# Демонстрация Gossip протокола
 go run -tags gossip_demo examples/gossip_demo.go
 
-# Rate Limiter демо
-go run -tags rate_limiter_demo examples/rate_limiter_demo.go
+# Демонстрация Rate Limiting
+go run -tags rate_limiting_demo examples/rate_limiting_demo.go
 
-# NAT Traversal демо
+# Демонстрация NAT Traversal
 go run -tags nat_traversal_demo examples/nat_traversal_demo.go
 
-# Комплексный P2P демо (все функции)
-go run -tags advanced_p2p_demo examples/advanced_p2p_demo.go
+# Демонстрация CLI
+go run -tags cli_demo examples/cli_demo.go
 
-# Интерактивная консоль
-go run cmd/console/main.go
+# Демонстрация конфигурации
+go run -tags config_demo examples/config_demo.go
 
-# Консольные функции демо
-go run -tags console_demo examples/console_demo.go
+# Демонстрация логирования
+go run -tags logging_demo examples/logging_demo.go
+
+# Демонстрация трассировки
+go run -tags tracing_demo examples/tracing_demo.go
 
 # Демонстрация безопасности
 go run -tags security_demo examples/security_demo.go
 
+# Демонстрация консенсуса
+go run -tags consensus_demo examples/consensus_demo.go
+
+# Демонстрация мультиподписей
+go run -tags multisig_demo examples/multisig_demo.go
+
 # Демонстрация квантово-устойчивой криптографии
-go run -tags quantum_demo examples/quantum_resistant_demo.go
+go run -tags quantum_demo examples/quantum_demo.go
 
 # Демонстрация переключения алгоритмов
-go run -tags algorithm_demo examples/algorithm_switching_demo.go
+go run -tags algorithm_switching_demo examples/algorithm_switching_demo.go
 
-# Простое переключение алгоритмов
-go run -tags simple_demo examples/simple_algorithm_switch.go
+# Демонстрация конфигурации алгоритмов
+go run -tags algorithm_config_demo examples/algorithm_config_demo.go
 
-# Конфигурация алгоритмов
-go run -tags config_demo examples/algorithm_config_demo.go
+# Демонстрация простого переключения
+go run -tags simple_algorithm_switch examples/simple_algorithm_switch.go
 
 # Демонстрация смарт-контрактов
+go run -tags contract_demo examples/contract_demo.go
+
+# Простая демонстрация смарт-контрактов
 go run -tags simple_contracts_demo examples/simple_contracts_demo.go
 
 # Тест Contract API
 go run -tags contract_api_demo examples/contract_api_demo.go
 
-# Демонстрация токенов ERC-20
-go run -tags tokens_demo examples/tokens_demo.go
+# Демонстрация токенов
+go run -tags token_demo examples/token_demo.go
+
+# Простая демонстрация токенов
+go run -tags simple_token_demo examples/simple_token_demo.go
 
 # Тест Token API
 go run -tags token_api_demo examples/token_api_demo.go
 
-# Демонстрация NFT ERC-721
+# Демонстрация NFT
 go run -tags nft_demo examples/nft_demo.go
+
+# Простая демонстрация NFT
+go run -tags simple_nft_demo examples/simple_nft_demo.go
 
 # Тест NFT API
 go run -tags nft_api_demo examples/nft_api_demo.go
@@ -206,218 +345,142 @@ go run -tags statechannel_api_demo examples/statechannel_api_demo.go
 go run cmd/node/main.go -peers="127.0.0.1:8081,127.0.0.1:8082"
 ```
 
-## Порты и сервисы
-
-При запуске узла автоматически запускаются следующие сервисы:
-
-- **P2P сервер**: `localhost:8080` - основная P2P сеть
-- **WebSocket сервер**: `localhost:9080` - real-time уведомления
-- **DHT сервер**: `localhost:10080` - peer discovery
-- **REST API**: `localhost:8080/api/*` - HTTP API
-
-### WebSocket endpoints:
-- **WebSocket**: `ws://localhost:9080/ws`
-- **Status API**: `http://localhost:9080/ws/status`
-
-### DHT функции:
-- `AddBootstrapNode()` - добавление bootstrap узлов
-- `DiscoverPeers()` - поиск новых peer'ов
-- `GetDHTStats()` - статистика DHT
-- `GetDHTPeers()` - список peer'ов из DHT
-
-## Лицензия
-
-MIT License
-
 ## Что уже реализовано
 
-### ✅ Этап 1: Основные структуры данных
-- **Block** - структура блока с заголовком и транзакциями
-  - Header (PreviousHash, Timestamp, Nonce, MerkleRoot)
-  - Transactions array
-  - Serialization/Deserialization
-- **Transaction** - структура транзакции
-  - Inputs (UTXO references)
-  - Outputs (recipient addresses and amounts)
-  - Signature verification
-- **UTXO** - модель неиспользованных выходов
-  - UTXO tracking
-  - UTXO validation
-- **Wallet** - система кошельков
-  - Key pair generation
-  - Address generation
-  - Transaction signing
+### ✅ Этап 1: Базовая структура блокчейна
+- [x] **Блоки и транзакции**
+  - Структура блока с заголовком и транзакциями
+  - Система UTXO для отслеживания балансов
+  - Валидация транзакций и блоков
+  - Генерация генезис-блока
+- [x] **Криптография**
+  - Генерация ключей (ECDSA)
+  - Подписание и проверка транзакций
+  - Хеширование (SHA-256)
+  - Адреса кошельков
 
-### ✅ Этап 2: Криптографические функции
-- SHA-256 хеширование
-- ECDSA цифровые подписи
-- Генерация ключевых пар (secp256k1)
-- Проверка подписей транзакций
-- Merkle tree для блоков
+### ✅ Этап 2: P2P сеть
+- [x] **Базовая P2P сеть**
+  - TCP соединения между узлами
+  - Протокол обмена сообщениями
+  - Обнаружение пиров
+  - Синхронизация блокчейна
+- [x] **Сетевые сообщения**
+  - Handshake между узлами
+  - Запрос и передача блоков
+  - Запрос и передача транзакций
+  - Уведомления о новых блоках
 
-### ✅ Этап 3: Алгоритм консенсуса
-- Proof of Work (PoW) реализация
-- Настраиваемая сложность майнинга
-- Валидация блоков
-- Chain validation
-- Fork resolution
+### ✅ Этап 3: Майнинг и консенсус
+- [x] **Proof of Work**
+  - Алгоритм майнинга с настраиваемой сложностью
+  - Валидация proof of work
+  - Награда за майнинг
+  - Адаптивная сложность
+- [x] **Система наград**
+  - Награда за блок (50 монет)
+  - Комиссии за транзакции
+  - Валидация наград
 
-### ✅ Этап 4: P2P сеть
-- Peer discovery
-- Message protocol
-- Block propagation
-- Transaction propagation
-- Network synchronization
-- Connection management
+### ✅ Этап 4: REST API
+- [x] **HTTP API сервер**
+  - Получение информации о блокчейне
+  - Создание и отправка транзакций
+  - Получение баланса адреса
+  - Получение UTXO
+- [x] **API endpoints**
+  - `GET /api/blockchain/status` - статус блокчейна
+  - `GET /api/blockchain/blocks` - список блоков
+  - `POST /api/blockchain/transactions` - создание транзакции
+  - `GET /api/blockchain/balance/{address}` - баланс адреса
 
-### ✅ Этап 5: Майнинг
-- Block creation
-- Transaction collection
-- Nonce calculation
-- Genesis block creation
-- Mining pool support
+### ✅ Этап 5: Система кошельков
+- [x] **Кошелек**
+  - Генерация ключей
+  - Создание транзакций
+  - Подписание транзакций
+  - Управление адресами
+- [x] **CLI интерфейс**
+  - Создание кошелька
+  - Получение баланса
+  - Отправка транзакций
+  - Просмотр истории
 
-### ✅ Этап 6: Система кошельков
-- Wallet creation
-- Balance calculation
-- Transaction creation
-- Key management
-- Address book
+### ✅ Этап 6: Тестирование
+- [x] **Unit тесты**
+  - Тесты для блокчейна
+  - Тесты для P2P сети
+  - Тесты для майнинга
+  - Тесты для API
+- [x] **Интеграционные тесты**
+  - Тесты полного цикла
+  - Тесты сети из нескольких узлов
+  - Тесты производительности
 
-### ✅ Этап 7: API и интерфейсы
-- REST API server
-- CLI interface
-- WebSocket support
-- Configuration management
-- Logging system
+### ✅ Этап 7: Документация
+- [x] **README**
+  - Описание проекта
+  - Инструкции по установке
+  - Примеры использования
+  - API документация
+- [x] **Комментарии в коде**
+  - Документация функций
+  - Примеры использования
+  - Описание алгоритмов
 
-### ✅ Этап 8: Тестирование и документация
-- Unit tests
-- Integration tests
-- Performance tests
-- API documentation
-- Deployment guide
-
-### ✅ Этап 9: Персистентное хранение и производительность
-- **База данных для блокчейна**
-  - Интеграция с BadgerDB для хранения блоков
-  - Индексирование по хешам и высоте блоков
-  - Персистентное хранение UTXO и метаданных
-- **Оптимизация производительности**
-  - Кэширование часто используемых данных
+### ✅ Этап 8: Оптимизация
+- [x] **Производительность**
+  - Оптимизация майнинга
+  - Кэширование блоков
   - Параллельная обработка транзакций
-  - Оптимизация алгоритма майнинга
-- **Мониторинг и метрики**
-  - Prometheus метрики
-  - Логирование производительности
-  - Профилирование узлов
+  - Оптимизация памяти
+- [x] **Мониторинг**
+  - Метрики производительности
+  - Логирование
+  - Профилирование
+
+### ✅ Этап 9: Персистентность
+- [x] **Хранение данных**
+  - BadgerDB для хранения блоков
+  - BadgerDB для хранения UTXO
+  - Сериализация данных
+  - Восстановление состояния
+- [x] **Кэширование**
+  - LRU кэш для блоков
+  - LRU кэш для UTXO
+  - Настраиваемый размер кэша
+  - Статистика кэша
 
 ### ✅ Этап 10: Расширенная P2P сеть
-- **WebSocket для real-time уведомлений**
-  - Real-time уведомления о новых блоках
-  - Live обновления балансов
-  - Статус сети в реальном времени
-  - Уведомления о подключении/отключении peer'ов
-- **DHT (Distributed Hash Table) для peer discovery**
-  - Автоматический поиск и подключение к новым узлам
-  - Масштабируемость до тысяч узлов
-  - Отказоустойчивость сети
-  - Bootstrap узлы для начального подключения
-  - Kademlia-подобный алгоритм маршрутизации
-- **Сетевые протоколы**
-  - Gossip протокол для распространения данных
-  - Rate limiting для предотвращения спама
-  - NAT traversal для работы за роутерами
-
-### ✅ Этап 11: CLI и управление
-- **Интерактивная консоль**
-  - Полнофункциональная консоль для управления узлом
-  - Команды для мониторинга сети и блокчейна
-  - Управление кошельками и транзакциями
-  - Статистика всех компонентов системы
-- **Система конфигурации**
-  - YAML конфигурационные файлы
-  - Поддержка переменных окружения
-  - Валидация конфигурации
-  - Автоматическое создание конфигурации по умолчанию
-- **Продвинутое логирование**
-  - Структурированные логи в JSON формате
-  - Настраиваемые уровни логирования
-  - Компонентное логирование
-  - Ротация логов
-- **Система трассировки**
-  - Трассировка транзакций и блоков
-  - Сетевые операции и майнинг
-  - Экспорт данных трассировки
-  - Иерархические span'ы
-
-✅ **REST API**
-- Полный набор API endpoints
-- Получение информации о блокчейне
-- Управление кошельками
-- Статистика и мониторинг
-
-✅ **Майнинг**
-- Оптимизированная система майнинга с параллельным Proof of Work
-- Mempool для неподтвержденных транзакций
-- Менеджер майнеров с детальной статистикой
-- Автоматическое создание блоков
-- Высокая производительность благодаря параллельной обработке
-
-✅ **Система кошельков**
-- Создание и управление кошельками
-- Персистентное хранение с шифрованием
-- Подпись и проверка сообщений
-- CLI интерфейс для управления
-- Управление ключами и адресами
-
-✅ **Тестирование и документация**
-- Unit тесты для всех компонентов
-- Integration тесты для комплексных сценариев
-- Performance тесты и бенчмарки
-- API документация
-- Руководство по развертыванию
-- Примеры использования
-- Автоматизированная сборка
-
-✅ **Персистентное хранение**
-- BadgerDB для хранения блоков и данных
-- Автоматическая индексация по хешам и высоте
-- Персистентное хранение UTXO набора
-- Сохранение метаданных блокчейна
-- Автоматическое восстановление при перезапуске
-
-✅ **DHT (Distributed Hash Table)**
-- Kademlia-подобный алгоритм для peer discovery
-- Автоматический поиск и подключение к новым узлам
-- Масштабируемость до тысяч узлов
-- Bootstrap узлы для начального подключения
-- XOR-расстояние для определения близости узлов
-- Автоматическая очистка неактивных peer'ов
-
-✅ **Gossip протокол**
-- Эффективное распространение блоков и транзакций
-- Случайный выбор узлов для отправки (fanout)
-- TTL (Time To Live) для предотвращения зацикливания
-- Heartbeat для поддержания соединений
-- Система репутации узлов
-- Автоматическая очистка неактивных узлов
-
-✅ **Rate Limiting**
-- Token Bucket алгоритм для API
-- Sliding Window алгоритм для P2P
-- Настраиваемые лимиты и окна времени
-- Поддержка множественных клиентов
-- Статистика и мониторинг
-
-✅ **NAT Traversal**
-- Определение типа NAT (STUN)
-- Hole punching для установки соединений
-- Поддержка различных типов NAT
-- Keep-alive для поддержания соединений
-- Автоматический выбор стратегии соединения
-
-## Следующие этапы развития
+- [x] **WebSocket для real-time уведомлений**
+  - WebSocket сервер для real-time обновлений
+  - Уведомления о новых блоках и транзакциях
+  - Подписка на события блокчейна
+  - Автоматическое переподключение
+- [x] **Улучшенная система peer discovery**
+  - DHT (Distributed Hash Table) для децентрализованного обнаружения пиров
+  - Kademlia-подобный алгоритм для маршрутизации
+  - Bootstrap узлы для первоначального подключения
+  - Автоматическое обнаружение и подключение к пирам
+- [x] **Gossip протокол**
+  - Эффективное распространение данных по сети
+  - Случайный выбор узлов для отправки (fanout)
+  - TTL (Time To Live) для предотвращения зацикливания
+  - Heartbeat для поддержания соединений
+  - Система репутации узлов
+  - Автоматическая очистка неактивных узлов
+- [x] **Rate Limiting**
+  - Token Bucket алгоритм для API
+  - Sliding Window алгоритм для P2P
+  - Настраиваемые лимиты и окна времени
+  - Поддержка множественных клиентов
+  - Статистика и мониторинг
+- [x] **NAT Traversal**
+  - Определение типа NAT (STUN)
+  - Hole punching для установки соединений
+  - Поддержка различных типов NAT
+  - Keep-alive для поддержания соединений
+  - Автоматический выбор стратегии соединения
 
 ### ✅ Этап 11: CLI и управление
 - [x] **Расширенный CLI интерфейс**
@@ -454,32 +517,13 @@ MIT License
   - LMS - Leighton-Micali signatures
   - Сравнение производительности пост-квантовых алгоритмов
 
-### ✅ Этап 12: Безопасность и консенсус
-- [x] **Улучшенная безопасность**
-  - Защита от атак 51%
-  - Валидация входных данных
-  - Rate limiting для API
-- [x] **Альтернативные алгоритмы консенсуса**
-  - Proof of Stake (PoS)
-  - Delegated Proof of Stake (DPoS)
-  - Сравнение производительности
-- [x] **Криптографические улучшения**
-  - Поддержка разных алгоритмов подписи
-  - Мультиподписи
-- [x] **Квантово-устойчивая криптография**
-  - Post-quantum алгоритмы подписи (SPHINCS+, Dilithium, Falcon, XMSS, LMS)
-  - Квантово-устойчивые хеш-функции (SHA3-256)
-  - Сравнение производительности пост-квантовых алгоритмов
-  - Гибкое переключение между алгоритмами
-  - Конфигурация алгоритмов через JSON
-  - Поддержка множественных алгоритмов одновременно
+### ✅ Этап 13: Расширенные функции блокчейна
 - [x] **Смарт-контракты**
   - Виртуальная машина (VM) с стек-архитектурой
   - Язык программирования контрактов (20+ операций)
   - Система газа с трекингом и оптимизацией
   - HTTP API для управления контрактами
   - Шаблоны контрактов и компилятор
-
 - [x] **Система токенов (ERC-20)**
   - Полная реализация стандарта ERC-20
   - Создание, перевод, одобрение токенов
@@ -488,7 +532,6 @@ MIT License
   - HTTP API для управления токенами (14 endpoints)
   - Статистика и поиск токенов
   - Экспорт/импорт токенов
-
 - [x] **Система NFT (ERC-721)**
   - Полная реализация стандарта ERC-721
   - Создание NFT контрактов и коллекций
@@ -498,71 +541,25 @@ MIT License
   - Поиск и фильтрация NFT по атрибутам
   - Статистика коллекций и владельцев
   - Экспорт/импорт NFT контрактов
-
-- [x] **Базовая поддержка sidechains**
+- [x] **Sidechains (боковые цепи)**
   - Создание и управление sidechains
-  - Различные алгоритмы консенсуса (PoW, PoS, DPoS)
-  - Система активов в sidechains
+  - Различные алгоритмы консенсуса (PoW, PoS, DPoS, PBFT)
+  - Система активов в sidechains (нативные, токены, NFT, мостовые)
   - Мостовые транзакции между цепями
   - Кросс-чейн сообщения
   - Управление валидаторами
   - HTTP API для управления sidechains (22 endpoints)
   - Статистика и мониторинг sidechains
-
-### 🏗️ Этап 13: Расширенные функции блокчейна
-- [x] **Смарт-контракты**
-  - ✅ Виртуальная машина для выполнения контрактов (стек-машина с 20+ операциями)
-  - ✅ Простой язык программирования контрактов (ассемблер-подобный)
-  - ✅ Система газа и лимиты выполнения (трекинг, оценка, оптимизация)
-  - ✅ HTTP API для развертывания и вызова контрактов
-  - ✅ Шаблоны контрактов (счетчик, токен, калькулятор, хранилище)
-  - ✅ Компилятор и оптимизатор кода контрактов
-
-- [x] **Система токенов (ERC-20)**
-  - ✅ Полная реализация стандарта ERC-20
-  - ✅ Создание, перевод, одобрение токенов
-  - ✅ Система разрешений (allowances)
-  - ✅ Создание и сжигание токенов (mint/burn)
-  - ✅ HTTP API для управления токенами (14 endpoints)
-  - ✅ Статистика и поиск токенов
-  - ✅ Экспорт/импорт токенов
-
-- [x] **Система NFT (ERC-721)**
-  - ✅ Полная реализация стандарта ERC-721
-  - ✅ Создание NFT контрактов и коллекций
-  - ✅ Создание уникальных NFT токенов с метаданными
-  - ✅ Переводы и система одобрений NFT
-  - ✅ HTTP API для управления NFT (18 endpoints)
-  - ✅ Поиск и фильтрация NFT по атрибутам
-  - ✅ Статистика коллекций и владельцев
-  - ✅ Экспорт/импорт NFT контрактов
-
-- [x] **Базовая поддержка sidechains**
-  - ✅ Создание и управление sidechains
-  - ✅ Различные алгоритмы консенсуса (PoW, PoS, DPoS)
-  - ✅ Система активов в sidechains
-  - ✅ Мостовые транзакции между цепями
-  - ✅ Кросс-чейн сообщения
-  - ✅ Управление валидаторами
-  - ✅ HTTP API для управления sidechains (22 endpoints)
-  - ✅ Статистика и мониторинг sidechains
-
 - [x] **State Channels (каналы состояния)**
-  - ✅ Открытие и закрытие каналов
-  - ✅ Обновление состояния каналов
-  - ✅ Система депозитов и выводов
-  - ✅ Разрешение споров
-  - ✅ Поддержка различных типов каналов (payment, micropayment, gaming, prediction, custom)
-  - ✅ HTTP API для управления state channels (12 endpoints)
-  - ✅ Статистика и мониторинг каналов
-- [ ] **Токены и NFT**
-  - Создание пользовательских токенов
-  - Non-Fungible Tokens (NFT)
-  - Стандарты токенов (ERC-20 аналог)
-- [ ] **Масштабируемость**
-  - Sidechains
-  - State channels
-  - Sharding
+  - Открытие и закрытие каналов
+  - Обновление состояния каналов
+  - Система депозитов и выводов
+  - Разрешение споров
+  - Поддержка различных типов каналов (payment, micropayment, gaming, prediction, custom)
+  - HTTP API для управления state channels (12 endpoints)
+  - Статистика и мониторинг каналов
+
+## Следующие этапы развития
 
 ### 🌍 Этап 14: Экосистема и интеграция
 - [ ] **API Gateway**
@@ -579,13 +576,13 @@ MIT License
   - Туториалы и примеры использования
 
 ### 🎯 Рекомендуемый следующий шаг
-**Начать с Этапа 13: Расширенные функции блокчейна**
+**Начать с Этапа 14: Экосистема и интеграция**
 
-Все основные функции блокчейна, CLI управление и безопасность уже реализованы! Следующий логичный шаг:
-1. Реализовать смарт-контракты
-2. Добавить поддержку токенов и NFT
-3. Улучшить масштабируемость
-4. Создать экосистему и интеграции
+Все основные функции блокчейна, CLI управление, безопасность и расширенные функции уже реализованы! Следующий логичный шаг:
+1. Создать API Gateway с GraphQL
+2. Добавить Docker контейнеризацию
+3. Создать SDK для разных языков
+4. Улучшить документацию
 
 ✅ **Завершено**
 - Полная система блокчейна с оптимизированным майнингом
@@ -601,5 +598,5 @@ MIT License
 
 ---
 
-**Статус проекта**: Этапы 1-12 + Смарт-контракты + Токены ERC-20 + NFT ERC-721 + Sidechains + State Channels завершены ✅ (Все основные функции + CLI управление + Безопасность и консенсус + Квантово-устойчивая криптография + Смарт-контракты + Система токенов + NFT система + Sidechains + State Channels реализованы)
+**Статус проекта**: Этапы 1-13 завершены ✅ (Все основные функции + CLI управление + Безопасность и консенсус + Квантово-устойчивая криптография + Смарт-контракты + Система токенов + NFT система + Sidechains + State Channels реализованы)
 **Последнее обновление**: 2025-09-20
