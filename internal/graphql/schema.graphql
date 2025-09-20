@@ -1,0 +1,459 @@
+# MiroChain GraphQL Schema
+
+type Query {
+  # Blockchain queries
+  blockchain: Blockchain!
+  block(height: Int!): Block
+  blocks(first: Int, after: String): BlockConnection!
+  transaction(hash: String!): Transaction
+  transactions(first: Int, after: String): TransactionConnection!
+  
+  # Wallet queries
+  wallet(address: String!): Wallet
+  wallets: [Wallet!]!
+  
+  # Smart contract queries
+  contract(address: String!): Contract
+  contracts: [Contract!]!
+  contractStorage(address: String!): ContractStorage
+  
+  # Token queries
+  token(address: String!): Token
+  tokens: [Token!]!
+  tokenBalance(address: String!, tokenAddress: String!): TokenBalance
+  
+  # NFT queries
+  nft(contractAddress: String!, tokenId: String!): NFT
+  nfts(contractAddress: String!): [NFT!]!
+  nftBalance(address: String!, contractAddress: String!): Int!
+  
+  # Sidechain queries
+  sidechain(id: String!): Sidechain
+  sidechains: [Sidechain!]!
+  
+  # State channel queries
+  stateChannel(id: String!): StateChannel
+  stateChannels(participant: String): [StateChannel!]!
+  
+  # Network queries
+  peers: [Peer!]!
+  networkStats: NetworkStats!
+  
+  # Consensus queries
+  consensus: ConsensusInfo!
+}
+
+type Mutation {
+  # Transaction mutations
+  sendTransaction(input: SendTransactionInput!): TransactionResult!
+  
+  # Smart contract mutations
+  deployContract(input: DeployContractInput!): ContractResult!
+  callContract(input: CallContractInput!): ContractResult!
+  setStorageValue(input: SetStorageValueInput!): StorageResult!
+  
+  # Token mutations
+  createToken(input: CreateTokenInput!): TokenResult!
+  transferToken(input: TransferTokenInput!): TokenResult!
+  mintToken(input: MintTokenInput!): TokenResult!
+  burnToken(input: BurnTokenInput!): TokenResult!
+  
+  # NFT mutations
+  createNFTContract(input: CreateNFTContractInput!): NFTResult!
+  mintNFT(input: MintNFTInput!): NFTResult!
+  transferNFT(input: TransferNFTInput!): NFTResult!
+  
+  # Sidechain mutations
+  createSidechain(input: CreateSidechainInput!): SidechainResult!
+  bridgeTransaction(input: BridgeTransactionInput!): BridgeResult!
+  
+  # State channel mutations
+  openChannel(input: OpenChannelInput!): ChannelResult!
+  updateChannel(input: UpdateChannelInput!): ChannelResult!
+  closeChannel(input: CloseChannelInput!): ChannelResult!
+}
+
+type Subscription {
+  # Real-time subscriptions
+  newBlock: Block!
+  newTransaction: Transaction!
+  contractEvent(address: String!): ContractEvent!
+  tokenTransfer(tokenAddress: String): TokenTransfer!
+  nftTransfer(contractAddress: String): NFTTransfer!
+  channelUpdate(channelId: String!): ChannelUpdate!
+}
+
+# Types
+
+type Blockchain {
+  height: Int!
+  difficulty: Int!
+  totalSupply: String!
+  hashRate: Float!
+  lastBlock: Block
+  stats: BlockchainStats!
+}
+
+type BlockchainStats {
+  totalBlocks: Int!
+  totalTransactions: Int!
+  totalAddresses: Int!
+  averageBlockTime: Float!
+  cacheHitRate: Float!
+}
+
+type Block {
+  hash: String!
+  height: Int!
+  timestamp: String!
+  previousHash: String!
+  merkleRoot: String!
+  nonce: Int!
+  difficulty: Int!
+  transactions: [Transaction!]!
+  size: Int!
+  gasUsed: Int!
+  gasLimit: Int!
+}
+
+type BlockConnection {
+  edges: [BlockEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type BlockEdge {
+  node: Block!
+  cursor: String!
+}
+
+type Transaction {
+  hash: String!
+  from: String!
+  to: String!
+  amount: String!
+  fee: String!
+  timestamp: String!
+  blockHeight: Int
+  status: TransactionStatus!
+  gasUsed: Int
+  gasPrice: String
+  data: String
+  signature: String!
+}
+
+type TransactionConnection {
+  edges: [TransactionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type TransactionEdge {
+  node: Transaction!
+  cursor: String!
+}
+
+enum TransactionStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+type Wallet {
+  address: String!
+  balance: String!
+  nonce: Int!
+  transactions: [Transaction!]!
+  createdAt: String!
+}
+
+type Contract {
+  address: String!
+  code: String!
+  owner: String!
+  balance: String!
+  createdAt: String!
+  updatedAt: String!
+  storage: ContractStorage
+}
+
+type ContractStorage {
+  address: String!
+  values: [StorageValue!]!
+}
+
+type StorageValue {
+  key: String!
+  value: String!
+}
+
+type Token {
+  address: String!
+  name: String!
+  symbol: String!
+  decimals: Int!
+  totalSupply: String!
+  owner: String!
+  createdAt: String!
+}
+
+type TokenBalance {
+  address: String!
+  tokenAddress: String!
+  balance: String!
+  allowance: String!
+}
+
+type NFT {
+  contractAddress: String!
+  tokenId: String!
+  owner: String!
+  metadata: String!
+  createdAt: String!
+}
+
+type Sidechain {
+  id: String!
+  name: String!
+  consensus: String!
+  validators: [String!]!
+  assets: [SidechainAsset!]!
+  createdAt: String!
+}
+
+type SidechainAsset {
+  address: String!
+  type: String!
+  balance: String!
+}
+
+type StateChannel {
+  id: String!
+  participants: [String!]!
+  balance: String!
+  status: ChannelStatus!
+  createdAt: String!
+  updatedAt: String!
+}
+
+enum ChannelStatus {
+  OPEN
+  CLOSED
+  DISPUTED
+}
+
+type Peer {
+  id: String!
+  address: String!
+  port: Int!
+  lastSeen: String!
+  latency: Float
+}
+
+type NetworkStats {
+  totalPeers: Int!
+  connectedPeers: Int!
+  averageLatency: Float!
+  bandwidth: Float!
+}
+
+type ConsensusInfo {
+  algorithm: String!
+  validators: [String!]!
+  currentRound: Int!
+  nextValidator: String
+}
+
+# Input types
+
+input SendTransactionInput {
+  to: String!
+  amount: String!
+  fee: String
+  data: String
+}
+
+input DeployContractInput {
+  code: String!
+  owner: String!
+  initialBalance: String
+  gasLimit: Int
+}
+
+input CallContractInput {
+  address: String!
+  function: String!
+  args: [String!]!
+  gasLimit: Int
+}
+
+input SetStorageValueInput {
+  address: String!
+  key: String!
+  value: String!
+}
+
+input CreateTokenInput {
+  name: String!
+  symbol: String!
+  decimals: Int!
+  totalSupply: String!
+}
+
+input TransferTokenInput {
+  tokenAddress: String!
+  to: String!
+  amount: String!
+}
+
+input MintTokenInput {
+  tokenAddress: String!
+  to: String!
+  amount: String!
+}
+
+input BurnTokenInput {
+  tokenAddress: String!
+  amount: String!
+}
+
+input CreateNFTContractInput {
+  name: String!
+  symbol: String!
+  baseURI: String
+}
+
+input MintNFTInput {
+  contractAddress: String!
+  to: String!
+  metadata: String!
+}
+
+input TransferNFTInput {
+  contractAddress: String!
+  tokenId: String!
+  to: String!
+}
+
+input CreateSidechainInput {
+  name: String!
+  consensus: String!
+  validators: [String!]!
+}
+
+input BridgeTransactionInput {
+  sidechainId: String!
+  to: String!
+  amount: String!
+  assetType: String!
+}
+
+input OpenChannelInput {
+  participant: String!
+  amount: String!
+  channelType: String
+}
+
+input UpdateChannelInput {
+  channelId: String!
+  amount: String!
+  signature: String!
+}
+
+input CloseChannelInput {
+  channelId: String!
+  signature: String!
+}
+
+# Result types
+
+type TransactionResult {
+  success: Boolean!
+  transaction: Transaction
+  error: String
+}
+
+type ContractResult {
+  success: Boolean!
+  contract: Contract
+  gasUsed: Int
+  error: String
+}
+
+type StorageResult {
+  success: Boolean!
+  error: String
+}
+
+type TokenResult {
+  success: Boolean!
+  token: Token
+  transaction: Transaction
+  error: String
+}
+
+type NFTResult {
+  success: Boolean!
+  nft: NFT
+  transaction: Transaction
+  error: String
+}
+
+type SidechainResult {
+  success: Boolean!
+  sidechain: Sidechain
+  error: String
+}
+
+type BridgeResult {
+  success: Boolean!
+  transaction: Transaction
+  error: String
+}
+
+type ChannelResult {
+  success: Boolean!
+  channel: StateChannel
+  error: String
+}
+
+# Event types
+
+type ContractEvent {
+  address: String!
+  event: String!
+  data: String!
+  timestamp: String!
+}
+
+type TokenTransfer {
+  from: String!
+  to: String!
+  amount: String!
+  tokenAddress: String!
+  timestamp: String!
+}
+
+type NFTTransfer {
+  from: String!
+  to: String!
+  tokenId: String!
+  contractAddress: String!
+  timestamp: String!
+}
+
+type ChannelUpdate {
+  channelId: String!
+  status: ChannelStatus!
+  balance: String!
+  timestamp: String!
+}
+
+# Common types
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}

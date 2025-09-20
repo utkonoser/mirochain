@@ -92,12 +92,75 @@ go run cmd/node/main.go -config=algorithm_config.json
 
 ## Быстрый старт
 
-### Установка
+### Локальная разработка
 
 ```bash
+# Клонируем репозиторий
 git clone https://github.com/utkonoser/mirochain.git
 cd mirochain
+
+# Устанавливаем зависимости
 go mod download
+
+# Запускаем узел
+go run cmd/node/main.go -port=8080 -mining=false
+
+# В другом терминале запускаем майнер
+go run cmd/node/main.go -port=9080 -mining=true
+```
+
+### Docker
+
+```bash
+# Сборка и запуск с Docker Compose
+docker-compose up -d
+
+# Или сборка и запуск отдельного контейнера
+docker build -t mirochain .
+docker run -p 8080:8080 mirochain
+```
+
+### Kubernetes
+
+```bash
+# Применение манифестов
+kubectl apply -f k8s/
+
+# Проверка статуса
+kubectl get pods -n mirochain
+```
+
+### Makefile
+
+```bash
+# Сборка
+make build
+
+# Запуск в режиме разработки
+make dev
+
+# Запуск с майнингом
+make dev-mining
+
+# Запуск нескольких узлов
+make dev-multi
+
+# Docker
+make docker-build
+make docker-compose-up
+
+# Kubernetes
+make k8s-apply
+make k8s-status
+
+# Тестирование
+make test
+make test-coverage
+
+# Демонстрации
+make demo
+make demo-contracts
+make demo-tokens
 ```
 
 ### Запуск узла

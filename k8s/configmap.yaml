@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mirochain-config
+  namespace: mirochain
+data:
+  NODE_PORT: "8080"
+  MINING_ENABLED: "false"
+  DATA_DIR: "/app/data"
+  GIN_MODE: "release"
+  LOG_LEVEL: "info"

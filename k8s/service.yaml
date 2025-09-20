@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mirochain-service
+  namespace: mirochain
+  labels:
+    app: mirochain-node
+spec:
+  selector:
+    app: mirochain-node
+  ports:
+  - name: p2p-api
+    port: 8080
+    targetPort: 8080
+  - name: websocket
+    port: 8081
+    targetPort: 8081
+  - name: dht
+    port: 8082
+    targetPort: 8082
+  - name: contract-api
+    port: 8083
+    targetPort: 8083
+  - name: token-api
+    port: 8084
+    targetPort: 8084
+  - name: nft-api
+    port: 8085
+    targetPort: 8085
+  - name: sidechain-api
+    port: 8086
+    targetPort: 8086
+  - name: statechannel-api
+    port: 8087
+    targetPort: 8087
+  - name: graphql-api
+    port: 8088
+    targetPort: 8088
+  type: ClusterIP

@@ -14,6 +14,8 @@ import (
 	"mirochain/internal/blockchain"
 	"mirochain/internal/consensus"
 	"mirochain/internal/crypto"
+	"mirochain/internal/gateway"
+	"mirochain/internal/graphql"
 	"mirochain/internal/logging"
 	"mirochain/internal/metrics"
 	"mirochain/internal/mining"
@@ -178,6 +180,8 @@ func main() {
 	// Создаем менеджер state channels
 	stateChannelManager := statechannel.NewStateChannelManager()
 	slog.Info("State Channel manager initialized")
+
+	slog.Info("GraphQL components initialized")
 
 	slog.Info("Security components initialized successfully")
 
@@ -395,6 +399,76 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 		err := http.ListenAndServe(fmt.Sprintf(":%d", stateChannelAPIPort), mux)
 		if err != nil {
 			slog.Error("Failed to start State Channel API server", "error", err)
+		}
+	}()
+
+	// Создаем GraphQL resolver
+	graphqlResolver := graphql.NewGraphQLResolver(
+		bc, // Используем CachedPersistentBlockchain напрямую
+		walletManager,
+		vmInstance,
+		tokenManager,
+		nftManager,
+		sidechainManager,
+		stateChannelManager,
+		consensusComparison,
+		signatureManager,
+		nil, // TODO: Add network server
+	)
+
+	// Создаем GraphQL схему
+	graphqlSchema, err := graphqlResolver.CreateSchema()
+	if err != nil {
+		slog.Error("Failed to create GraphQL schema", "error", err)
+		return
+	}
+	slog.Info("GraphQL schema created successfully")
+
+	// Создаем GraphQL handlers
+	graphqlHandler := graphql.NewGraphQLHandler(graphqlSchema)
+	graphiqlHandler := graphql.NewGraphiQLHandler()
+	introspectionHandler := graphql.NewIntrospectionHandler(graphqlSchema)
+
+	// Создаем Webhook Manager
+	webhookManager := gateway.NewWebhookManager()
+	slog.Info("Webhook manager initialized")
+
+	// Создаем Version Manager
+	versionManager := gateway.NewVersionManager()
+	slog.Info("Version manager initialized")
+
+	// Создаем API Gateway
+	apiGateway := gateway.NewAPIGateway(
+		graphqlHandler,
+		graphiqlHandler,
+		introspectionHandler,
+		webhookManager,
+		versionManager,
+	)
+	slog.Info("API Gateway initialized")
+
+	// Создаем и запускаем API Gateway сервер
+	gatewayPort := port + 7000 // API Gateway на порту +7000 от P2P сервера
+	go func() {
+		mux := http.NewServeMux()
+		apiGateway.RegisterRoutes(mux)
+
+		slog.Info("Starting API Gateway server", "port", gatewayPort)
+		slog.Info("API Gateway endpoints", "endpoints", []string{
+			"/graphql - GraphQL API",
+			"/graphiql - GraphiQL Playground",
+			"/introspection - GraphQL Schema",
+			"/api/v1/ - Version 1 API",
+			"/api/v2/ - Version 2 API",
+			"/api/latest/ - Latest API",
+			"/webhooks/ - Webhook Management",
+			"/health - Health Check",
+			"/docs - API Documentation",
+			"/swagger.json - OpenAPI Spec",
+		})
+		err := http.ListenAndServe(fmt.Sprintf(":%d", gatewayPort), mux)
+		if err != nil {
+			slog.Error("Failed to start API Gateway server", "error", err)
 		}
 	}()
 

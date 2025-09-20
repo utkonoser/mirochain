@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mirochain-node
+  namespace: mirochain
+  labels:
+    app: mirochain-node
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mirochain-node
+  template:
+    metadata:
+      labels:
+        app: mirochain-node
+    spec:
+      containers:
+      - name: mirochain
+        image: mirochain:latest
+        ports:
+        - containerPort: 8080
+          name: p2p-api
+        - containerPort: 8081
+          name: websocket
+        - containerPort: 8082
+          name: dht
+        - containerPort: 8083
+          name: contract-api
+        - containerPort: 8084
+          name: token-api
+        - containerPort: 8085
+          name: nft-api
+        - containerPort: 8086
+          name: sidechain-api
+        - containerPort: 8087
+          name: statechannel-api
+        - containerPort: 8088
+          name: graphql-api
+        env:
+        - name: NODE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: mirochain-config
+              key: NODE_PORT
+        - name: MINING_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: mirochain-config
+              key: MINING_ENABLED
+        - name: DATA_DIR
+          valueFrom:
+            configMapKeyRef:
+              name: mirochain-config
+              key: DATA_DIR
+        - name: GIN_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: mirochain-config
+              key: GIN_MODE
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: mirochain-config
+              key: LOG_LEVEL
+        volumeMounts:
+        - name: data-volume
+          mountPath: /app/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: mirochain-pvc

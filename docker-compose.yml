@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  mirochain-node:
+    build: .
+    container_name: mirochain-node
+    ports:
+      - "8080:8080"  # P2P API
+      - "8081:8081"  # WebSocket
+      - "8082:8082"  # DHT
+      - "8083:8083"  # Contract API
+      - "8084:8084"  # Token API
+      - "8085:8085"  # NFT API
+      - "8086:8086"  # Sidechain API
+      - "8087:8087"  # State Channel API
+      - "8088:8088"  # GraphQL API Gateway
+    volumes:
+      - mirochain-data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+      - GIN_MODE=release
+    command: ["./mirochain", "-port=8080", "-mining=false", "-data=/app/data"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mirochain-miner:
+    build: .
+    container_name: mirochain-miner
+    ports:
+      - "9080:8080"  # P2P API
+      - "9081:8081"  # WebSocket
+      - "9082:8082"  # DHT
+      - "9083:8083"  # Contract API
+      - "9084:8084"  # Token API
+      - "9085:8085"  # NFT API
+      - "9086:8086"  # Sidechain API
+      - "9087:8087"  # State Channel API
+      - "9088:8088"  # GraphQL API Gateway
+    volumes:
+      - mirochain-miner-data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+      - GIN_MODE=release
+    command: ["./mirochain", "-port=8080", "-mining=true", "-data=/app/data"]
+    restart: unless-stopped
+    depends_on:
+      - mirochain-node
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  nginx:
+    image: nginx:alpine
+    container_name: mirochain-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - mirochain-node
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mirochain-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mirochain-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: unless-stopped
+
+volumes:
+  mirochain-data:
+  mirochain-miner-data:
+  prometheus-data:
+  grafana-data:
