@@ -154,6 +154,18 @@ go run -tags websocket_simple examples/websocket_simple.go
 # DHT (Distributed Hash Table) демо
 go run -tags dht_demo examples/dht_demo.go
 
+# Gossip протокол демо
+go run -tags gossip_demo examples/gossip_demo.go
+
+# Rate Limiter демо
+go run -tags rate_limiter_demo examples/rate_limiter_demo.go
+
+# NAT Traversal демо
+go run -tags nat_traversal_demo examples/nat_traversal_demo.go
+
+# Комплексный P2P демо (все функции)
+go run -tags advanced_p2p_demo examples/advanced_p2p_demo.go
+
 # Запуск узла с подключением к другим узлам
 go run cmd/node/main.go -peers="127.0.0.1:8081,127.0.0.1:8082"
 ```
@@ -281,6 +293,28 @@ MIT License
 - XOR-расстояние для определения близости узлов
 - Автоматическая очистка неактивных peer'ов
 
+✅ **Gossip протокол**
+- Эффективное распространение блоков и транзакций
+- Случайный выбор узлов для отправки (fanout)
+- TTL (Time To Live) для предотвращения зацикливания
+- Heartbeat для поддержания соединений
+- Система репутации узлов
+- Автоматическая очистка неактивных узлов
+
+✅ **Rate Limiting**
+- Token Bucket алгоритм для API
+- Sliding Window алгоритм для P2P
+- Настраиваемые лимиты и окна времени
+- Поддержка множественных клиентов
+- Статистика и мониторинг
+
+✅ **NAT Traversal**
+- Определение типа NAT (STUN)
+- Hole punching для установки соединений
+- Поддержка различных типов NAT
+- Keep-alive для поддержания соединений
+- Автоматический выбор стратегии соединения
+
 ## Следующие этапы развития
 
 ### ✅ Этап 9: Персистентное хранение и производительность
@@ -309,7 +343,7 @@ MIT License
   - Отказоустойчивость сети
   - Bootstrap узлы для начального подключения
   - Kademlia-подобный алгоритм маршрутизации
-- [ ] **Сетевые протоколы**
+- [x] **Сетевые протоколы**
   - Gossip протокол для распространения данных
   - Rate limiting для предотвращения спама
   - NAT traversal для работы за роутерами
@@ -393,5 +427,5 @@ MIT License
 
 ---
 
-**Статус проекта**: Этап 10 завершен ✅ (WebSocket + DHT)
+**Статус проекта**: Этап 10 полностью завершен ✅ (WebSocket + DHT + Gossip + Rate Limiting + NAT Traversal)
 **Последнее обновление**: 2025-09-20

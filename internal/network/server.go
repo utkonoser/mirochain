@@ -12,21 +12,24 @@ import (
 
 // Server представляет P2P сервер
 type Server struct {
-	ID          string                 `json:"id"`
-	Address     string                 `json:"address"`
-	Port        int                    `json:"port"`
-	Peers       map[string]*Peer       `json:"peers"`
-	Blockchain  *blockchain.Blockchain `json:"-"`
-	Listener    net.Listener           `json:"-"`
-	IsRunning   bool                   `json:"is_running"`
-	MessageChan chan *Message          `json:"-"`
-	PeerChan    chan *Peer             `json:"-"`
-	StopChan    chan bool              `json:"-"`
-	WebSocket   *WebSocketServer       `json:"-"`
-	DHT         *DHT                   `json:"-"`
-	DHTServer   *DHTServer             `json:"-"`
-	DHTClient   *DHTClient             `json:"-"`
-	mutex       sync.RWMutex
+	ID           string                 `json:"id"`
+	Address      string                 `json:"address"`
+	Port         int                    `json:"port"`
+	Peers        map[string]*Peer       `json:"peers"`
+	Blockchain   *blockchain.Blockchain `json:"-"`
+	Listener     net.Listener           `json:"-"`
+	IsRunning    bool                   `json:"is_running"`
+	MessageChan  chan *Message          `json:"-"`
+	PeerChan     chan *Peer             `json:"-"`
+	StopChan     chan bool              `json:"-"`
+	WebSocket    *WebSocketServer       `json:"-"`
+	DHT          *DHT                   `json:"-"`
+	DHTServer    *DHTServer             `json:"-"`
+	DHTClient    *DHTClient             `json:"-"`
+	Gossip       *GossipProtocol        `json:"-"`
+	RateLimiter  *RateLimiterManager    `json:"-"`
+	NATTraversal *NATTraversal          `json:"-"`
+	mutex        sync.RWMutex
 }
 
 // NewServer создает новый P2P сервер
@@ -50,6 +53,44 @@ func NewServer(address string, port int, bc *blockchain.Blockchain) *Server {
 	server.DHT = NewDHT(nodeID, 8, server) // Kademlia K=8
 	server.DHTServer = NewDHTServer(server.DHT, server)
 	server.DHTClient = NewDHTClient(server.DHT, server)
+
+	// Инициализируем Gossip протокол
+	gossipConfig := GossipConfig{
+		Fanout:            3,
+		MaxTTL:            7,
+		HeartbeatInterval: 30 * time.Second,
+		MessageTimeout:    5 * time.Second,
+		MaxRetries:        3,
+	}
+	server.Gossip = NewGossipProtocol(server.ID, gossipConfig, server)
+
+	// Инициализируем Rate Limiter
+	server.RateLimiter = NewRateLimiterManager()
+
+	// Добавляем rate limiter'ы
+	server.RateLimiter.AddRateLimiter("api", RateLimiterConfig{
+		Type:        TokenBucket,
+		MaxRequests: 100,
+		WindowSize:  time.Minute,
+		BurstSize:   20,
+		RefillRate:  10,
+	})
+
+	server.RateLimiter.AddRateLimiter("p2p", RateLimiterConfig{
+		Type:        SlidingWindow,
+		MaxRequests: 50,
+		WindowSize:  time.Minute,
+	})
+
+	// Инициализируем NAT Traversal
+	natConfig := NATTraversalConfig{
+		STUNServers:       []string{"stun.l.google.com:19302", "stun1.l.google.com:19302"},
+		STUNTimeout:       5 * time.Second,
+		HolePunchTimeout:  10 * time.Second,
+		KeepAliveInterval: 30 * time.Second,
+		MaxRetries:        5,
+	}
+	server.NATTraversal = NewNATTraversal(natConfig)
 
 	return server
 }
@@ -105,6 +146,16 @@ func (s *Server) Start() error {
 	go func() {
 		if err := s.DHTClient.Bootstrap(); err != nil {
 			slog.Error("Failed to bootstrap DHT", "error", err)
+		}
+	}()
+
+	// Запускаем Gossip протокол
+	go s.Gossip.Start()
+
+	// Запускаем NAT Traversal
+	go func() {
+		if err := s.NATTraversal.Start(s.Port); err != nil {
+			slog.Error("Failed to start NAT Traversal", "error", err)
 		}
 	}()
 
@@ -340,4 +391,81 @@ func (s *Server) GetDHTPeers() []*PeerInfo {
 		return []*PeerInfo{}
 	}
 	return s.DHT.GetAllPeers()
+}
+
+// GetGossipStats возвращает статистику Gossip протокола
+func (s *Server) GetGossipStats() map[string]interface{} {
+	if s.Gossip == nil {
+		return map[string]interface{}{}
+	}
+	return s.Gossip.GetStats()
+}
+
+// GetRateLimiterStats возвращает статистику Rate Limiter'ов
+func (s *Server) GetRateLimiterStats() map[string]interface{} {
+	if s.RateLimiter == nil {
+		return map[string]interface{}{}
+	}
+	return s.RateLimiter.GetAllStats()
+}
+
+// GetNATStats возвращает статистику NAT Traversal
+func (s *Server) GetNATStats() map[string]interface{} {
+	if s.NATTraversal == nil {
+		return map[string]interface{}{}
+	}
+	return s.NATTraversal.GetStats()
+}
+
+// AddGossipNode добавляет узел в Gossip сеть
+func (s *Server) AddGossipNode(nodeID, address string) {
+	if s.Gossip != nil {
+		s.Gossip.AddNode(nodeID, address)
+	}
+}
+
+// RemoveGossipNode удаляет узел из Gossip сети
+func (s *Server) RemoveGossipNode(nodeID string) {
+	if s.Gossip != nil {
+		s.Gossip.RemoveNode(nodeID)
+	}
+}
+
+// BroadcastBlockGossip распространяет блок через Gossip
+func (s *Server) BroadcastBlockGossip(block *blockchain.Block) error {
+	if s.Gossip == nil {
+		return fmt.Errorf("Gossip protocol not initialized")
+	}
+	return s.Gossip.BroadcastBlock(block)
+}
+
+// BroadcastTransactionGossip распространяет транзакцию через Gossip
+func (s *Server) BroadcastTransactionGossip(tx *blockchain.Transaction) error {
+	if s.Gossip == nil {
+		return fmt.Errorf("Gossip protocol not initialized")
+	}
+	return s.Gossip.BroadcastTransaction(tx)
+}
+
+// CheckRateLimit проверяет rate limit для клиента
+func (s *Server) CheckRateLimit(limiterName, clientID string) bool {
+	if s.RateLimiter == nil {
+		return true // Разрешаем, если rate limiter не инициализирован
+	}
+	return s.RateLimiter.Allow(limiterName, clientID)
+}
+
+// AddNATPeer добавляет peer для NAT Traversal
+func (s *Server) AddNATPeer(peerID, internalAddr, externalAddr string, natType NATType) {
+	if s.NATTraversal != nil {
+		s.NATTraversal.AddPeer(peerID, internalAddr, externalAddr, natType)
+	}
+}
+
+// EstablishNATConnection устанавливает соединение через NAT
+func (s *Server) EstablishNATConnection(peerID string) error {
+	if s.NATTraversal == nil {
+		return fmt.Errorf("NAT Traversal not initialized")
+	}
+	return s.NATTraversal.EstablishConnection(peerID)
 }
