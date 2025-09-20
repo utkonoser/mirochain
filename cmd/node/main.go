@@ -22,6 +22,7 @@ import (
 	"mirochain/internal/profiling"
 	"mirochain/internal/security"
 	"mirochain/internal/tokens"
+	"mirochain/internal/nft"
 	"mirochain/internal/vm"
 	"mirochain/internal/wallet"
 )
@@ -159,6 +160,10 @@ func main() {
 	tokenManager := tokens.NewERC20Manager()
 	slog.Info("ERC-20 Token manager initialized")
 
+	// Создаем менеджер NFT ERC-721
+	nftManager := nft.NewERC721Manager()
+	slog.Info("ERC-721 NFT manager initialized")
+
 	slog.Info("Security components initialized successfully")
 
 	// Создаем P2P сервер
@@ -215,9 +220,9 @@ func main() {
 	}
 
 	// Запускаем API сервер с интеграцией безопасности
-	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger,
-		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus,
-		consensusComparison, signatureManager, multisigManager, quantumResistantManager, vmInstance, tokenManager)
+	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger, 
+		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus, 
+		consensusComparison, signatureManager, multisigManager, quantumResistantManager, vmInstance, tokenManager, nftManager)
 
 	// Ожидаем завершения
 	slog.Info("Node is running. Press Ctrl+C to stop.")
@@ -225,13 +230,13 @@ func main() {
 }
 
 // startAPIServer запускает API сервер с интеграцией безопасности
-func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{}, port int,
+func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{}, port int, 
 	metricsCollector *metrics.MetricsCollector, perfLogger *logging.PerformanceLogger,
 	attackProtection *security.AttackProtection, inputValidator *security.InputValidator,
 	apiRateLimiter *security.APIRateLimiter, posConsensus *consensus.ProofOfStake,
 	dposConsensus *consensus.DelegatedProofOfStake, consensusComparison *consensus.ConsensusComparison,
 	signatureManager *crypto.SignatureManager, multisigManager *crypto.MultiSigManager,
-	quantumResistantManager *crypto.QuantumResistantManager, vmInstance *vm.VM, tokenManager *tokens.ERC20Manager) {
+	quantumResistantManager *crypto.QuantumResistantManager, vmInstance *vm.VM, tokenManager *tokens.ERC20Manager, nftManager *nft.ERC721Manager) {
 	slog.Info("Starting API server with security integration", "p2p_port", port, "api_port", port+1000)
 
 	// Логируем информацию о компонентах безопасности
@@ -253,6 +258,11 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 	slog.Info("ERC-20 Token system integrated",
 		"supported_operations", []string{"create", "transfer", "approve", "transferFrom", "balanceOf", "allowance", "mint", "burn"},
 		"api_endpoints", 14)
+
+	// Логируем информацию о NFT
+	slog.Info("ERC-721 NFT system integrated",
+		"supported_operations", []string{"create_contract", "mint", "transfer", "approve", "setApprovalForAll", "transferFrom", "ownerOf", "getApproved", "isApprovedForAll", "balanceOf", "burn"},
+		"api_endpoints", 18)
 
 	// Создаем и запускаем API сервер
 	// Используем реальный блокчейн для API сервера
@@ -290,11 +300,25 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 		mux := http.NewServeMux()
 		tokenAPI := tokens.NewTokenAPI(tokenManager)
 		tokenAPI.RegisterRoutes(mux)
-
+		
 		slog.Info("Starting Token API server", "port", tokenAPIPort)
 		err := http.ListenAndServe(fmt.Sprintf(":%d", tokenAPIPort), mux)
 		if err != nil {
 			slog.Error("Failed to start Token API server", "error", err)
+		}
+	}()
+
+	// Создаем и запускаем NFT API сервер
+	nftAPIPort := port + 4000 // NFT API на порту +4000 от P2P сервера
+	go func() {
+		mux := http.NewServeMux()
+		nftAPI := nft.NewNFTAPI(nftManager)
+		nftAPI.RegisterRoutes(mux)
+		
+		slog.Info("Starting NFT API server", "port", nftAPIPort)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", nftAPIPort), mux)
+		if err != nil {
+			slog.Error("Failed to start NFT API server", "error", err)
 		}
 	}()
 
