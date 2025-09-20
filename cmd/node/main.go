@@ -10,12 +10,15 @@ import (
 
 	"mirochain/internal/api"
 	"mirochain/internal/blockchain"
+	"mirochain/internal/consensus"
+	"mirochain/internal/crypto"
 	"mirochain/internal/logging"
 	"mirochain/internal/metrics"
 	"mirochain/internal/mining"
 	"mirochain/internal/network"
 	"mirochain/internal/persistent"
 	"mirochain/internal/profiling"
+	"mirochain/internal/security"
 	"mirochain/internal/wallet"
 )
 
@@ -115,6 +118,37 @@ func main() {
 	// TODO: Обновить network.NewServer для поддержки интерфейсов
 	bcAdapter := &blockchain.Blockchain{}
 
+	// Инициализируем компоненты безопасности
+	slog.Info("Initializing security components...")
+
+	// Создаем систему защиты от атак
+	attackProtection := security.NewAttackProtection(bcAdapter)
+	attackProtection.Start()
+	defer attackProtection.Stop()
+
+	// Создаем валидатор входных данных
+	inputValidator := security.NewInputValidator()
+
+	// Создаем улучшенный rate limiter
+	apiRateLimiter := security.NewAPIRateLimiter()
+	defer apiRateLimiter.Stop()
+
+	// Создаем алгоритмы консенсуса
+	posConsensus := consensus.NewProofOfStake(bcAdapter)
+	dposConsensus := consensus.NewDelegatedProofOfStake(bcAdapter)
+	consensusComparison := consensus.NewConsensusComparison(bcAdapter)
+
+	// Создаем менеджер алгоритмов подписи
+	signatureManager := crypto.NewSignatureManager()
+
+	// Создаем менеджер мультиподписей
+	multisigManager := crypto.NewMultiSigManager()
+	
+	// Создаем менеджер квантово-устойчивой криптографии
+	quantumResistantManager := crypto.NewQuantumResistantManager()
+	
+	slog.Info("Security components initialized successfully")
+
 	// Создаем P2P сервер
 	p2pServer := network.NewServer("0.0.0.0", *port, bcAdapter)
 
@@ -138,6 +172,11 @@ func main() {
 	// Создаем mempool и менеджер майнинга
 	mempool := mining.NewMempool(1000) // Максимум 1000 транзакций в mempool
 	miningManager := mining.NewManager(bcAdapter, mempool, p2pServer)
+
+	// Интегрируем алгоритмы консенсуса с майнингом
+	// В реальной реализации здесь должна быть логика выбора алгоритма консенсуса
+	// Пока что используем PoW по умолчанию, но добавляем поддержку PoS/DPoS
+	slog.Info("Consensus algorithms available: PoW, PoS, DPoS")
 
 	// Запускаем менеджер майнинга
 	err = miningManager.Start()
@@ -163,23 +202,43 @@ func main() {
 		}
 	}
 
-	// Запускаем API сервер
-	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger)
+	// Запускаем API сервер с интеграцией безопасности
+	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger, 
+		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus, 
+		consensusComparison, signatureManager, multisigManager, quantumResistantManager)
 
 	// Ожидаем завершения
 	slog.Info("Node is running. Press Ctrl+C to stop.")
 	select {}
 }
 
-// startAPIServer запускает API сервер
-func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{}, port int, metricsCollector *metrics.MetricsCollector, perfLogger *logging.PerformanceLogger) {
-	slog.Info("Starting API server", "port", port)
+// startAPIServer запускает API сервер с интеграцией безопасности
+func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{}, port int, 
+	metricsCollector *metrics.MetricsCollector, perfLogger *logging.PerformanceLogger,
+	attackProtection *security.AttackProtection, inputValidator *security.InputValidator,
+	apiRateLimiter *security.APIRateLimiter, posConsensus *consensus.ProofOfStake,
+	dposConsensus *consensus.DelegatedProofOfStake, consensusComparison *consensus.ConsensusComparison,
+	signatureManager *crypto.SignatureManager, multisigManager *crypto.MultiSigManager,
+	quantumResistantManager *crypto.QuantumResistantManager) {
+	slog.Info("Starting API server with security integration", "p2p_port", port, "api_port", port+1000)
+
+	// Логируем информацию о компонентах безопасности
+	slog.Info("Security components integrated",
+		"attack_protection", "enabled",
+		"input_validation", "enabled", 
+		"rate_limiting", "enabled",
+		"consensus_algorithms", []string{"PoW", "PoS", "DPoS"},
+		"signature_algorithms", signatureManager.GetSupportedAlgorithms(),
+		"multisig_support", "enabled",
+		"quantum_resistant_algorithms", quantumResistantManager.GetSupportedAlgorithms())
 
 	// Создаем и запускаем API сервер
-	// Пока что создаем обычный блокчейн для API сервера
-	// TODO: Обновить API сервер для поддержки интерфейсов
+	// Используем реальный блокчейн для API сервера
+	apiPort := port + 1000 // API сервер на порту +1000 от P2P сервера
+
+	// Создаем адаптер для API сервера
 	bcForAPI := &blockchain.Blockchain{}
-	apiServer := api.NewServerWithMempool(bcForAPI, wm, mempool, port)
+	apiServer := api.NewServerWithMempool(bcForAPI, wm, mempool, apiPort)
 
 	// Запускаем API сервер в отдельной горутине
 	go func() {

@@ -178,6 +178,12 @@ func DeserializeUTXOSet(data []byte) (*UTXOSet, error) {
 
 // GetStats возвращает статистику UTXOSet
 func (us *UTXOSet) GetStats() map[string]interface{} {
+	if us == nil {
+		return map[string]interface{}{
+			"total_utxos": 0,
+			"total_value": 0,
+		}
+	}
 	us.mutex.RLock()
 	defer us.mutex.RUnlock()
 

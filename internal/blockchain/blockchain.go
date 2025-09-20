@@ -303,9 +303,14 @@ func (bc *Blockchain) GetStats() map[string]interface{} {
 	}
 
 	// Добавляем статистику UTXOSet
-	utxoStats := bc.UTXOSet.GetStats()
-	for k, v := range utxoStats {
-		stats["utxo_"+k] = v
+	if bc.UTXOSet != nil {
+		utxoStats := bc.UTXOSet.GetStats()
+		for k, v := range utxoStats {
+			stats["utxo_"+k] = v
+		}
+	} else {
+		stats["utxo_total_utxos"] = 0
+		stats["utxo_total_value"] = 0
 	}
 
 	return stats
