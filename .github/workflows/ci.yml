@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.23'
   DOCKER_IMAGE: mirochain
   DOCKER_TAG: latest
 
@@ -37,10 +37,10 @@ jobs:
       run: go test -v ./...
     
     - name: Run linter
-      uses: golangci/golangci-lint-action@v3
+      uses: golangci/golangci-lint-action@v6
       with:
-        version: latest
-        args: --timeout=5m
+        version: v1.64.8
+        args: --timeout=5m --out-format=colored-line-number
 
   build:
     needs: test
