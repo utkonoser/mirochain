@@ -21,6 +21,7 @@ import (
 	"mirochain/internal/persistent"
 	"mirochain/internal/profiling"
 	"mirochain/internal/security"
+	"mirochain/internal/tokens"
 	"mirochain/internal/vm"
 	"mirochain/internal/wallet"
 )
@@ -154,6 +155,10 @@ func main() {
 	vmInstance := vm.NewVM(1000000) // 1M газа по умолчанию
 	slog.Info("Smart contracts VM initialized", "gas_limit", vmInstance.GetGasRemaining())
 
+	// Создаем менеджер токенов ERC-20
+	tokenManager := tokens.NewERC20Manager()
+	slog.Info("ERC-20 Token manager initialized")
+
 	slog.Info("Security components initialized successfully")
 
 	// Создаем P2P сервер
@@ -212,7 +217,7 @@ func main() {
 	// Запускаем API сервер с интеграцией безопасности
 	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger,
 		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus,
-		consensusComparison, signatureManager, multisigManager, quantumResistantManager, vmInstance)
+		consensusComparison, signatureManager, multisigManager, quantumResistantManager, vmInstance, tokenManager)
 
 	// Ожидаем завершения
 	slog.Info("Node is running. Press Ctrl+C to stop.")
@@ -226,7 +231,7 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 	apiRateLimiter *security.APIRateLimiter, posConsensus *consensus.ProofOfStake,
 	dposConsensus *consensus.DelegatedProofOfStake, consensusComparison *consensus.ConsensusComparison,
 	signatureManager *crypto.SignatureManager, multisigManager *crypto.MultiSigManager,
-	quantumResistantManager *crypto.QuantumResistantManager, vmInstance *vm.VM) {
+	quantumResistantManager *crypto.QuantumResistantManager, vmInstance *vm.VM, tokenManager *tokens.ERC20Manager) {
 	slog.Info("Starting API server with security integration", "p2p_port", port, "api_port", port+1000)
 
 	// Логируем информацию о компонентах безопасности
@@ -243,6 +248,11 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 	slog.Info("Smart contracts VM integrated",
 		"gas_limit", vmInstance.GetGasRemaining(),
 		"supported_opcodes", []string{"PUSH", "POP", "ADD", "SUB", "MUL", "DIV", "LOAD", "STORE", "SLOAD", "SSTORE", "JUMP", "JUMPI", "RETURN", "STOP"})
+
+	// Логируем информацию о токенах
+	slog.Info("ERC-20 Token system integrated",
+		"supported_operations", []string{"create", "transfer", "approve", "transferFrom", "balanceOf", "allowance", "mint", "burn"},
+		"api_endpoints", 14)
 
 	// Создаем и запускаем API сервер
 	// Используем реальный блокчейн для API сервера
@@ -271,6 +281,20 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 		err := http.ListenAndServe(fmt.Sprintf(":%d", contractAPIPort), mux)
 		if err != nil {
 			slog.Error("Failed to start Contract API server", "error", err)
+		}
+	}()
+
+	// Создаем и запускаем Token API сервер
+	tokenAPIPort := port + 3000 // Token API на порту +3000 от P2P сервера
+	go func() {
+		mux := http.NewServeMux()
+		tokenAPI := tokens.NewTokenAPI(tokenManager)
+		tokenAPI.RegisterRoutes(mux)
+
+		slog.Info("Starting Token API server", "port", tokenAPIPort)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", tokenAPIPort), mux)
+		if err != nil {
+			slog.Error("Failed to start Token API server", "error", err)
 		}
 	}()
 
