@@ -1,0 +1,32 @@
+node:
+  port: 8080
+  peers: []
+  mining: true
+  data_dir: "./data"
+  
+blockchain:
+  difficulty: 4
+  block_time: 10s
+  max_transactions_per_block: 1000
+  
+wallet:
+  data_dir: "./wallet_data"
+  
+mining:
+  reward: 50
+  target_time: 10s
+  
+network:
+  max_peers: 50
+  peer_discovery: true
+  sync_interval: 30s
+  
+api:
+  enabled: true
+  port: 8080
+  cors_enabled: true
+  
+logging:
+  level: "info"
+  format: "text"
+  file: "./logs/node.log"
