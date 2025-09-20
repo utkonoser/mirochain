@@ -22,12 +22,16 @@ type Server struct {
 	MessageChan chan *Message          `json:"-"`
 	PeerChan    chan *Peer             `json:"-"`
 	StopChan    chan bool              `json:"-"`
+	WebSocket   *WebSocketServer       `json:"-"`
+	DHT         *DHT                   `json:"-"`
+	DHTServer   *DHTServer             `json:"-"`
+	DHTClient   *DHTClient             `json:"-"`
 	mutex       sync.RWMutex
 }
 
 // NewServer создает новый P2P сервер
 func NewServer(address string, port int, bc *blockchain.Blockchain) *Server {
-	return &Server{
+	server := &Server{
 		ID:          generateNodeID(),
 		Address:     address,
 		Port:        port,
@@ -37,6 +41,17 @@ func NewServer(address string, port int, bc *blockchain.Blockchain) *Server {
 		PeerChan:    make(chan *Peer, 100),
 		StopChan:    make(chan bool),
 	}
+
+	// Инициализируем WebSocket сервер
+	server.WebSocket = NewWebSocketServer(server, bc)
+
+	// Инициализируем DHT
+	nodeID := GenerateDHTNodeID()
+	server.DHT = NewDHT(nodeID, 8, server) // Kademlia K=8
+	server.DHTServer = NewDHTServer(server.DHT, server)
+	server.DHTClient = NewDHTClient(server.DHT, server)
+
+	return server
 }
 
 // Start запускает P2P сервер
@@ -65,7 +80,37 @@ func (s *Server) Start() error {
 	go s.handlePeers()
 	go s.acceptConnections()
 
+	// Запускаем WebSocket сервер в отдельной горутине
+	go func() {
+		wsPort := s.Port + 1000 // WebSocket на порту +1000
+		if err := s.WebSocket.Start(wsPort); err != nil {
+			slog.Error("Failed to start WebSocket server", "error", err)
+		}
+	}()
+
+	// Запускаем DHT сервер в отдельной горутине
+	go func() {
+		dhtPort := s.Port + 2000 // DHT на порту +2000
+		if err := s.DHTServer.Start(dhtPort); err != nil {
+			slog.Error("Failed to start DHT server", "error", err)
+		}
+	}()
+
+	// Запускаем DHT
+	if err := s.DHT.Start(); err != nil {
+		slog.Error("Failed to start DHT", "error", err)
+	}
+
+	// Запускаем DHT bootstrap
+	go func() {
+		if err := s.DHTClient.Bootstrap(); err != nil {
+			slog.Error("Failed to bootstrap DHT", "error", err)
+		}
+	}()
+
 	slog.Info("P2P server started", "address", s.Address, "port", s.Port, "node_id", s.ID)
+	slog.Info("WebSocket server started", "port", s.Port+1000)
+	slog.Info("DHT server started", "port", s.Port+2000, "dht_node_id", fmt.Sprintf("%x", s.DHT.nodeID))
 	return nil
 }
 
@@ -191,13 +236,27 @@ func (s *Server) addPeer(peer *Peer) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.Peers[peer.ID] = peer
+
+	// Отправляем WebSocket уведомление
+	if s.WebSocket != nil {
+		s.WebSocket.BroadcastPeerConnected(peer)
+	}
 }
 
 // removePeer удаляет peer из списка
 func (s *Server) removePeer(peerID string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	delete(s.Peers, peerID)
+
+	// Получаем peer перед удалением для уведомления
+	peer, exists := s.Peers[peerID]
+	if exists {
+		// Отправляем WebSocket уведомление
+		if s.WebSocket != nil {
+			s.WebSocket.BroadcastPeerDisconnected(peer)
+		}
+		delete(s.Peers, peerID)
+	}
 }
 
 // GetPeers возвращает список активных peer'ов
@@ -230,4 +289,55 @@ func generateNodeID() string {
 func (s *Server) String() string {
 	return fmt.Sprintf("Server{ID: %s, Address: %s:%d, Peers: %d, Running: %t}",
 		s.ID, s.Address, s.Port, s.GetPeerCount(), s.IsRunning)
+}
+
+// GetWebSocketClientCount возвращает количество WebSocket клиентов
+func (s *Server) GetWebSocketClientCount() int {
+	if s.WebSocket == nil {
+		return 0
+	}
+	return s.WebSocket.GetClientCount()
+}
+
+// BroadcastBalanceUpdate отправляет уведомление об обновлении баланса
+func (s *Server) BroadcastBalanceUpdate(address string, balance, change int64) {
+	if s.WebSocket != nil {
+		s.WebSocket.BroadcastBalanceUpdate(address, balance, change)
+	}
+}
+
+// AddBootstrapNode добавляет bootstrap узел в DHT
+func (s *Server) AddBootstrapNode(address string) {
+	if s.DHT != nil {
+		s.DHT.AddBootstrapNode(address)
+	}
+}
+
+// GetDHTStats возвращает статистику DHT
+func (s *Server) GetDHTStats() map[string]interface{} {
+	if s.DHT == nil {
+		return map[string]interface{}{}
+	}
+
+	return map[string]interface{}{
+		"node_id":    fmt.Sprintf("%x", s.DHT.nodeID),
+		"peer_count": s.DHT.GetPeerCount(),
+		"bootstrap":  s.DHT.bootstrap,
+	}
+}
+
+// DiscoverPeers использует DHT для поиска новых peer'ов
+func (s *Server) DiscoverPeers() error {
+	if s.DHTClient == nil {
+		return fmt.Errorf("DHT client not initialized")
+	}
+	return s.DHTClient.DiscoverPeers()
+}
+
+// GetDHTPeers возвращает список peer'ов из DHT
+func (s *Server) GetDHTPeers() []*PeerInfo {
+	if s.DHT == nil {
+		return []*PeerInfo{}
+	}
+	return s.DHT.GetAllPeers()
 }

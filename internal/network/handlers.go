@@ -66,6 +66,11 @@ func (s *Server) handleNewBlock(msg *Message) {
 
 	slog.Info("Block added to blockchain", "height", block.Height, "hash", fmt.Sprintf("%x", block.Hash))
 
+	// Отправляем WebSocket уведомление
+	if s.WebSocket != nil {
+		s.WebSocket.BroadcastNewBlock(block)
+	}
+
 	// Распространяем блок другим peer'ам
 	s.broadcastBlock(block, msg.From)
 }
@@ -89,6 +94,11 @@ func (s *Server) handleNewTransaction(msg *Message) {
 
 	// TODO: Добавить транзакцию в mempool
 	slog.Info("Transaction validated", "tx_id", fmt.Sprintf("%x", tx.ID))
+
+	// Отправляем WebSocket уведомление
+	if s.WebSocket != nil {
+		s.WebSocket.BroadcastNewTransaction(tx)
+	}
 
 	// Распространяем транзакцию другим peer'ам
 	s.broadcastTransaction(tx, msg.From)

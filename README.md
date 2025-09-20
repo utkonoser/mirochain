@@ -145,9 +145,37 @@ go run examples/basic_usage.go
 # Запуск P2P сети с API
 go run examples/p2p_network.go
 
+# WebSocket уведомления (real-time)
+go run -tags websocket_demo examples/websocket_demo.go
+
+# Простой тест WebSocket
+go run -tags websocket_simple examples/websocket_simple.go
+
+# DHT (Distributed Hash Table) демо
+go run -tags dht_demo examples/dht_demo.go
+
 # Запуск узла с подключением к другим узлам
 go run cmd/node/main.go -peers="127.0.0.1:8081,127.0.0.1:8082"
 ```
+
+## Порты и сервисы
+
+При запуске узла автоматически запускаются следующие сервисы:
+
+- **P2P сервер**: `localhost:8080` - основная P2P сеть
+- **WebSocket сервер**: `localhost:9080` - real-time уведомления
+- **DHT сервер**: `localhost:10080` - peer discovery
+- **REST API**: `localhost:8080/api/*` - HTTP API
+
+### WebSocket endpoints:
+- **WebSocket**: `ws://localhost:9080/ws`
+- **Status API**: `http://localhost:9080/ws/status`
+
+### DHT функции:
+- `AddBootstrapNode()` - добавление bootstrap узлов
+- `DiscoverPeers()` - поиск новых peer'ов
+- `GetDHTStats()` - статистика DHT
+- `GetDHTPeers()` - список peer'ов из DHT
 
 ## Конфигурация
 
@@ -245,6 +273,14 @@ MIT License
 - Сохранение метаданных блокчейна
 - Автоматическое восстановление при перезапуске
 
+✅ **DHT (Distributed Hash Table)**
+- Kademlia-подобный алгоритм для peer discovery
+- Автоматический поиск и подключение к новым узлам
+- Масштабируемость до тысяч узлов
+- Bootstrap узлы для начального подключения
+- XOR-расстояние для определения близости узлов
+- Автоматическая очистка неактивных peer'ов
+
 ## Следующие этапы развития
 
 ### ✅ Этап 9: Персистентное хранение и производительность
@@ -262,14 +298,17 @@ MIT License
   - [x] Профилирование узлов
 
 ### 🌐 Этап 10: Расширенная P2P сеть
-- [ ] **WebSocket для real-time уведомлений**
+- [x] **WebSocket для real-time уведомлений**
   - Real-time уведомления о новых блоках
   - Live обновления балансов
   - Статус сети в реальном времени
-- [ ] **Улучшенная система peer discovery**
-  - DHT (Distributed Hash Table) для поиска пиров
-  - Bootstrap узлы
-  - Автоматическое обнаружение соседей
+  - Уведомления о подключении/отключении peer'ов
+- [x] **DHT (Distributed Hash Table) для peer discovery**
+  - Автоматический поиск и подключение к новым узлам
+  - Масштабируемость до тысяч узлов
+  - Отказоустойчивость сети
+  - Bootstrap узлы для начального подключения
+  - Kademlia-подобный алгоритм маршрутизации
 - [ ] **Сетевые протоколы**
   - Gossip протокол для распространения данных
   - Rate limiting для предотвращения спама
@@ -343,6 +382,8 @@ MIT License
 ✅ **Завершено**
 - Полная система блокчейна с оптимизированным майнингом
 - P2P сеть и REST API
+- WebSocket уведомления для real-time обновлений
+- DHT (Distributed Hash Table) для децентрализованного peer discovery
 - Система кошельков с CLI
 - Комплексное тестирование и документация
 - Персистентное хранение с BadgerDB
@@ -352,5 +393,5 @@ MIT License
 
 ---
 
-**Статус проекта**: Этап 9 завершен ✅
+**Статус проекта**: Этап 10 завершен ✅ (WebSocket + DHT)
 **Последнее обновление**: 2025-09-20
