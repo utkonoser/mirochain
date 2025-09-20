@@ -363,6 +363,11 @@ func (cpbc *CachedPersistentBlockchain) Close() error {
 	return nil
 }
 
+// GetStorage возвращает storage для использования в других компонентах
+func (cpbc *CachedPersistentBlockchain) GetStorage() storage.Storage {
+	return cpbc.storage
+}
+
 // Вспомогательные методы для сохранения
 
 func (cpbc *CachedPersistentBlockchain) saveBlock(block *blockchain.Block) error {

@@ -59,6 +59,11 @@ func (s *BadgerStorage) Close() error {
 	return nil
 }
 
+// GetDB возвращает BadgerDB для использования в других компонентах
+func (s *BadgerStorage) GetDB() *badger.DB {
+	return s.db
+}
+
 // Clear очищает все данные из базы
 func (s *BadgerStorage) Clear() error {
 	s.mu.Lock()

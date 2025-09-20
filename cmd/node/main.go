@@ -24,6 +24,7 @@ import (
 	"mirochain/internal/security"
 	"mirochain/internal/sidechain"
 	"mirochain/internal/statechannel"
+	"mirochain/internal/storage"
 	"mirochain/internal/tokens"
 	"mirochain/internal/vm"
 	"mirochain/internal/wallet"
@@ -154,8 +155,12 @@ func main() {
 	// Создаем менеджер квантово-устойчивой криптографии
 	quantumResistantManager := crypto.NewQuantumResistantManager()
 
-	// Создаем виртуальную машину для смарт-контрактов
-	vmInstance := vm.NewVM(1000000) // 1M газа по умолчанию
+	// Создаем систему хранения контрактов
+	contractStorageManager := vm.NewContractStorageManager(bc.GetStorage().(*storage.BadgerStorage).GetDB())
+	slog.Info("Contract storage manager initialized")
+
+	// Создаем виртуальную машину для смарт-контрактов с системой хранения
+	vmInstance := vm.NewVMWithStorage(1000000, contractStorageManager) // 1M газа по умолчанию
 	slog.Info("Smart contracts VM initialized", "gas_limit", vmInstance.GetGasRemaining())
 
 	// Создаем менеджер токенов ERC-20
@@ -232,7 +237,7 @@ func main() {
 	// Запускаем API сервер с интеграцией безопасности
 	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger,
 		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus,
-		consensusComparison, signatureManager, multisigManager, quantumResistantManager, vmInstance, tokenManager, nftManager, sidechainManager, stateChannelManager)
+		consensusComparison, signatureManager, multisigManager, quantumResistantManager, vmInstance, tokenManager, nftManager, sidechainManager, stateChannelManager, contractStorageManager)
 
 	// Ожидаем завершения
 	slog.Info("Node is running. Press Ctrl+C to stop.")
@@ -246,7 +251,7 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 	apiRateLimiter *security.APIRateLimiter, posConsensus *consensus.ProofOfStake,
 	dposConsensus *consensus.DelegatedProofOfStake, consensusComparison *consensus.ConsensusComparison,
 	signatureManager *crypto.SignatureManager, multisigManager *crypto.MultiSigManager,
-	quantumResistantManager *crypto.QuantumResistantManager, vmInstance *vm.VM, tokenManager *tokens.ERC20Manager, nftManager *nft.ERC721Manager, sidechainManager *sidechain.SidechainManager, stateChannelManager *statechannel.StateChannelManager) {
+	quantumResistantManager *crypto.QuantumResistantManager, vmInstance *vm.VM, tokenManager *tokens.ERC20Manager, nftManager *nft.ERC721Manager, sidechainManager *sidechain.SidechainManager, stateChannelManager *statechannel.StateChannelManager, contractStorageManager *vm.ContractStorageManager) {
 	slog.Info("Starting API server with security integration", "p2p_port", port, "api_port", port+1000)
 
 	// Логируем информацию о компонентах безопасности
@@ -301,13 +306,36 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 	}()
 
 	// Создаем и запускаем Contract API сервер
-	contractAPIPort := port + 2000 // Contract API на порту +2000 от P2P сервера
+	contractAPIPort := port + 3000 // Contract API на порту +3000 от P2P сервера
 	go func() {
+		if vmInstance == nil {
+			slog.Error("VM instance is nil, cannot start Contract API")
+			return
+		}
+		if contractStorageManager == nil {
+			slog.Error("Contract storage manager is nil, cannot start Contract API")
+			return
+		}
+
 		mux := http.NewServeMux()
-		contractAPI := vm.NewContractAPI(vmInstance)
+		contractAPI := vm.NewContractAPIWithStorage(vmInstance, contractStorageManager)
 		contractAPI.RegisterRoutes(mux)
 
 		slog.Info("Starting Contract API server", "port", contractAPIPort)
+		slog.Info("Contract API routes registered", "routes", []string{
+			"/api/contracts/deploy",
+			"/api/contracts/call",
+			"/api/contracts/get",
+			"/api/contracts/list",
+			"/api/contracts/templates",
+			"/api/contracts/compile",
+			"/api/contracts/estimate-gas",
+			"/api/contracts/gas-report",
+			"/api/contracts/storage/",
+			"/api/contracts/storage/set",
+			"/api/contracts/storage/get",
+			"/api/contracts/stats",
+		})
 		err := http.ListenAndServe(fmt.Sprintf(":%d", contractAPIPort), mux)
 		if err != nil {
 			slog.Error("Failed to start Contract API server", "error", err)
@@ -315,7 +343,7 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 	}()
 
 	// Создаем и запускаем Token API сервер
-	tokenAPIPort := port + 3000 // Token API на порту +3000 от P2P сервера
+	tokenAPIPort := port + 2000 // Token API на порту +2000 от P2P сервера
 	go func() {
 		mux := http.NewServeMux()
 		tokenAPI := tokens.NewTokenAPI(tokenManager)

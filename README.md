@@ -305,6 +305,9 @@ go run -tags contract_demo examples/contract_demo.go
 # Простая демонстрация смарт-контрактов
 go run -tags simple_contracts_demo examples/simple_contracts_demo.go
 
+# Демонстрация системы хранения контрактов
+go run -tags contract_storage_demo examples/contract_storage_demo.go
+
 # Тест Contract API
 go run -tags contract_api_demo examples/contract_api_demo.go
 
@@ -522,8 +525,11 @@ go run cmd/node/main.go -peers="127.0.0.1:8081,127.0.0.1:8082"
   - Виртуальная машина (VM) с стек-архитектурой
   - Язык программирования контрактов (20+ операций)
   - Система газа с трекингом и оптимизацией
-  - HTTP API для управления контрактами
+  - Персистентное хранение состояния контрактов (BadgerDB)
+  - HTTP API для управления контрактами (12 endpoints)
   - Шаблоны контрактов и компилятор
+  - Управление хранилищем контрактов (SLOAD/SSTORE)
+  - Статистика и мониторинг контрактов
 - [x] **Система токенов (ERC-20)**
   - Полная реализация стандарта ERC-20
   - Создание, перевод, одобрение токенов
