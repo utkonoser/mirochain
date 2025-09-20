@@ -424,12 +424,22 @@ func (n *NATTraversal) GetStats() map[string]interface{} {
 		}
 	}
 
-	return map[string]interface{}{
-		"nat_type":        n.natInfo.Type,
-		"external_ip":     n.natInfo.ExternalIP,
-		"external_port":   n.natInfo.ExternalPort,
-		"is_behind_nat":   n.natInfo.IsBehindNAT,
+	stats := map[string]interface{}{
 		"total_peers":     len(n.peers),
 		"reachable_peers": reachableCount,
 	}
+
+	if n.natInfo != nil {
+		stats["nat_type"] = n.natInfo.Type
+		stats["external_ip"] = n.natInfo.ExternalIP
+		stats["external_port"] = n.natInfo.ExternalPort
+		stats["is_behind_nat"] = n.natInfo.IsBehindNAT
+	} else {
+		stats["nat_type"] = "unknown"
+		stats["external_ip"] = ""
+		stats["external_port"] = 0
+		stats["is_behind_nat"] = false
+	}
+
+	return stats
 }

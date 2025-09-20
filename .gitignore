@@ -42,6 +42,18 @@ data/
 profiles/
 *.prof
 *.log
+logs/
+
+# Configuration files (keep configs/ but ignore generated ones)
+config_demo.yaml
+config.yaml
+
+# Test files
+test_*.go
+test_console.sh
+
+# Example files that are generated
+examples/websocket_simple_test.go
 
 # Temporary files
 tmp/
