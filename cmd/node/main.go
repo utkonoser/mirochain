@@ -210,8 +210,8 @@ func main() {
 	}
 
 	// Запускаем API сервер с интеграцией безопасности
-	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger, 
-		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus, 
+	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger,
+		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus,
 		consensusComparison, signatureManager, multisigManager, quantumResistantManager, vmInstance)
 
 	// Ожидаем завершения
@@ -220,7 +220,7 @@ func main() {
 }
 
 // startAPIServer запускает API сервер с интеграцией безопасности
-func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{}, port int, 
+func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{}, port int,
 	metricsCollector *metrics.MetricsCollector, perfLogger *logging.PerformanceLogger,
 	attackProtection *security.AttackProtection, inputValidator *security.InputValidator,
 	apiRateLimiter *security.APIRateLimiter, posConsensus *consensus.ProofOfStake,
@@ -266,7 +266,7 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 		mux := http.NewServeMux()
 		contractAPI := vm.NewContractAPI(vmInstance)
 		contractAPI.RegisterRoutes(mux)
-		
+
 		slog.Info("Starting Contract API server", "port", contractAPIPort)
 		err := http.ListenAndServe(fmt.Sprintf(":%d", contractAPIPort), mux)
 		if err != nil {
