@@ -23,6 +23,7 @@ import (
 	"mirochain/internal/profiling"
 	"mirochain/internal/security"
 	"mirochain/internal/sidechain"
+	"mirochain/internal/statechannel"
 	"mirochain/internal/tokens"
 	"mirochain/internal/vm"
 	"mirochain/internal/wallet"
@@ -169,6 +170,10 @@ func main() {
 	sidechainManager := sidechain.NewSidechainManager()
 	slog.Info("Sidechain manager initialized")
 
+	// Создаем менеджер state channels
+	stateChannelManager := statechannel.NewStateChannelManager()
+	slog.Info("State Channel manager initialized")
+
 	slog.Info("Security components initialized successfully")
 
 	// Создаем P2P сервер
@@ -227,7 +232,7 @@ func main() {
 	// Запускаем API сервер с интеграцией безопасности
 	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger,
 		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus,
-		consensusComparison, signatureManager, multisigManager, quantumResistantManager, vmInstance, tokenManager, nftManager, sidechainManager)
+		consensusComparison, signatureManager, multisigManager, quantumResistantManager, vmInstance, tokenManager, nftManager, sidechainManager, stateChannelManager)
 
 	// Ожидаем завершения
 	slog.Info("Node is running. Press Ctrl+C to stop.")
@@ -241,7 +246,7 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 	apiRateLimiter *security.APIRateLimiter, posConsensus *consensus.ProofOfStake,
 	dposConsensus *consensus.DelegatedProofOfStake, consensusComparison *consensus.ConsensusComparison,
 	signatureManager *crypto.SignatureManager, multisigManager *crypto.MultiSigManager,
-	quantumResistantManager *crypto.QuantumResistantManager, vmInstance *vm.VM, tokenManager *tokens.ERC20Manager, nftManager *nft.ERC721Manager, sidechainManager *sidechain.SidechainManager) {
+	quantumResistantManager *crypto.QuantumResistantManager, vmInstance *vm.VM, tokenManager *tokens.ERC20Manager, nftManager *nft.ERC721Manager, sidechainManager *sidechain.SidechainManager, stateChannelManager *statechannel.StateChannelManager) {
 	slog.Info("Starting API server with security integration", "p2p_port", port, "api_port", port+1000)
 
 	// Логируем информацию о компонентах безопасности
@@ -273,6 +278,11 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 	slog.Info("Sidechain system integrated",
 		"supported_operations", []string{"create", "add_block", "add_transaction", "create_asset", "bridge_transaction", "cross_chain_message", "validator_management"},
 		"api_endpoints", 22)
+
+	// Логируем информацию о state channels
+	slog.Info("State Channel system integrated",
+		"supported_operations", []string{"open", "close", "update_state", "dispute", "settle", "get_balance", "get_history"},
+		"api_endpoints", 12)
 
 	// Создаем и запускаем API сервер
 	// Используем реальный блокчейн для API сервера
@@ -343,6 +353,20 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 		err := http.ListenAndServe(fmt.Sprintf(":%d", sidechainAPIPort), mux)
 		if err != nil {
 			slog.Error("Failed to start Sidechain API server", "error", err)
+		}
+	}()
+
+	// Создаем и запускаем State Channel API сервер
+	stateChannelAPIPort := port + 6000 // State Channel API на порту +6000 от P2P сервера
+	go func() {
+		mux := http.NewServeMux()
+		stateChannelAPI := statechannel.NewStateChannelAPI(stateChannelManager)
+		stateChannelAPI.RegisterRoutes(mux)
+
+		slog.Info("Starting State Channel API server", "port", stateChannelAPIPort)
+		err := http.ListenAndServe(fmt.Sprintf(":%d", stateChannelAPIPort), mux)
+		if err != nil {
+			slog.Error("Failed to start State Channel API server", "error", err)
 		}
 	}()
 

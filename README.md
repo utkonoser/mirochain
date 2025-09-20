@@ -196,6 +196,12 @@ go run -tags simple_sidechain_demo examples/simple_sidechain_demo.go
 # Тест Sidechain API
 go run -tags sidechain_api_demo examples/sidechain_api_demo.go
 
+# Демонстрация State Channels
+go run -tags statechannel_demo examples/statechannel_demo.go
+
+# Тест State Channel API
+go run -tags statechannel_api_demo examples/statechannel_api_demo.go
+
 # Запуск узла с подключением к другим узлам
 go run cmd/node/main.go -peers="127.0.0.1:8081,127.0.0.1:8082"
 ```
@@ -540,6 +546,15 @@ MIT License
   - ✅ Управление валидаторами
   - ✅ HTTP API для управления sidechains (22 endpoints)
   - ✅ Статистика и мониторинг sidechains
+
+- [x] **State Channels (каналы состояния)**
+  - ✅ Открытие и закрытие каналов
+  - ✅ Обновление состояния каналов
+  - ✅ Система депозитов и выводов
+  - ✅ Разрешение споров
+  - ✅ Поддержка различных типов каналов (payment, micropayment, gaming, prediction, custom)
+  - ✅ HTTP API для управления state channels (12 endpoints)
+  - ✅ Статистика и мониторинг каналов
 - [ ] **Токены и NFT**
   - Создание пользовательских токенов
   - Non-Fungible Tokens (NFT)
@@ -586,5 +601,5 @@ MIT License
 
 ---
 
-**Статус проекта**: Этапы 1-12 + Смарт-контракты + Токены ERC-20 + NFT ERC-721 + Sidechains завершены ✅ (Все основные функции + CLI управление + Безопасность и консенсус + Квантово-устойчивая криптография + Смарт-контракты + Система токенов + NFT система + Sidechains реализованы)
+**Статус проекта**: Этапы 1-12 + Смарт-контракты + Токены ERC-20 + NFT ERC-721 + Sidechains + State Channels завершены ✅ (Все основные функции + CLI управление + Безопасность и консенсус + Квантово-устойчивая криптография + Смарт-контракты + Система токенов + NFT система + Sidechains + State Channels реализованы)
 **Последнее обновление**: 2025-09-20
