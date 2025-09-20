@@ -46,6 +46,53 @@ mirochain/
 - Git
 - Make (опционально)
 
+## 🔐 Переключение алгоритмов
+
+MiroChain поддерживает гибкое переключение между различными криптографическими алгоритмами:
+
+### Доступные алгоритмы:
+
+**Классические (быстрые, но уязвимы к квантовым атакам):**
+- `ecdsa` - Быстрый, широко поддерживаемый
+- `ed25519` - Очень быстрый, хорош для высокой пропускной способности
+- `rsa` - Медленный, большие ключи, но хорошо установленный
+- `schnorr` - Быстрый, хорош для мультиподписей
+
+**Квантово-устойчивые (защищены от квантовых атак):**
+- `sphincs+` - Наиболее безопасный, большие подписи, stateless
+- `dilithium` - Хороший баланс, умеренный размер, lattice-based
+- `falcon` - Компактные подписи, lattice-based
+- `xmss` - Stateful, хорош для ограниченных ресурсов
+- `lms` - Stateful, хорош для IoT устройств
+
+### Стратегии переключения:
+
+1. **Классическая** - Использовать только классические алгоритмы
+2. **Квантовая** - Использовать только квантово-устойчивые алгоритмы
+3. **Гибридная** - Поддерживать оба типа одновременно
+4. **Миграция** - Постепенно переходить с классических на квантово-устойчивые
+5. **Переговоры** - Позволить клиентам выбирать предпочитаемый алгоритм
+
+### Примеры использования:
+
+```go
+// Создание менеджеров
+classicManager := crypto.NewSignatureManager()
+quantumManager := crypto.NewQuantumResistantManager()
+
+// Генерация ключей
+ecdsaKey, _ := classicManager.GenerateKeyPair("ecdsa")
+dilithiumKey, _ := quantumManager.GenerateKeyPair("dilithium")
+
+// Подписание
+ecdsaSig, _ := classicManager.Sign("ecdsa", ecdsaKey.PrivateKey, data)
+dilithiumSig, _ := quantumManager.Sign("dilithium", dilithiumKey.PrivateKey, data)
+
+// Проверка
+ecdsaValid := classicManager.Verify(ecdsaSig, data)
+dilithiumValid, _ := quantumManager.Verify("dilithium", dilithiumKey.PublicKey, dilithiumSig, data)
+```
+
 ## Быстрый старт
 
 ```bash
@@ -112,6 +159,15 @@ go run -tags security_demo examples/security_demo.go
 
 # Демонстрация квантово-устойчивой криптографии
 go run -tags quantum_demo examples/quantum_resistant_demo.go
+
+# Демонстрация переключения алгоритмов
+go run -tags algorithm_demo examples/algorithm_switching_demo.go
+
+# Простое переключение алгоритмов
+go run -tags simple_demo examples/simple_algorithm_switch.go
+
+# Конфигурация алгоритмов
+go run -tags config_demo examples/algorithm_config_demo.go
 
 # Запуск узла с подключением к другим узлам
 go run cmd/node/main.go -peers="127.0.0.1:8081,127.0.0.1:8082"
@@ -381,6 +437,9 @@ MIT License
   - Post-quantum алгоритмы подписи (SPHINCS+, Dilithium, Falcon, XMSS, LMS)
   - Квантово-устойчивые хеш-функции (SHA3-256)
   - Сравнение производительности пост-квантовых алгоритмов
+  - Гибкое переключение между алгоритмами
+  - Конфигурация алгоритмов через JSON
+  - Поддержка множественных алгоритмов одновременно
 
 ### 🏗️ Этап 13: Расширенные функции блокчейна
 - [ ] **Смарт-контракты**

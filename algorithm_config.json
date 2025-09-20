@@ -1,0 +1,25 @@
+{
+  "default_classic_algorithm": "ecdsa",
+  "default_quantum_algorithm": "dilithium",
+  "enabled_classic_algorithms": [
+    "ecdsa",
+    "ed25519",
+    "rsa",
+    "schnorr"
+  ],
+  "enabled_quantum_algorithms": [
+    "dilithium",
+    "falcon",
+    "sphincs+",
+    "xmss",
+    "lms"
+  ],
+  "algorithm_selection_strategy": "hybrid",
+  "migration_settings": {
+    "enable_migration": true,
+    "migration_start_date": "2025-01-01",
+    "migration_end_date": "2025-12-31",
+    "classic_algorithm": "ecdsa",
+    "quantum_algorithm": "dilithium"
+  }
+}
