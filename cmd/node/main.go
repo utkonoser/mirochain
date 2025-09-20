@@ -143,10 +143,10 @@ func main() {
 
 	// Создаем менеджер мультиподписей
 	multisigManager := crypto.NewMultiSigManager()
-	
+
 	// Создаем менеджер квантово-устойчивой криптографии
 	quantumResistantManager := crypto.NewQuantumResistantManager()
-	
+
 	slog.Info("Security components initialized successfully")
 
 	// Создаем P2P сервер
@@ -203,8 +203,8 @@ func main() {
 	}
 
 	// Запускаем API сервер с интеграцией безопасности
-	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger, 
-		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus, 
+	startAPIServer(bc, walletManager, mempool, *port, metricsCollector, perfLogger,
+		attackProtection, inputValidator, apiRateLimiter, posConsensus, dposConsensus,
 		consensusComparison, signatureManager, multisigManager, quantumResistantManager)
 
 	// Ожидаем завершения
@@ -213,7 +213,7 @@ func main() {
 }
 
 // startAPIServer запускает API сервер с интеграцией безопасности
-func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{}, port int, 
+func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{}, port int,
 	metricsCollector *metrics.MetricsCollector, perfLogger *logging.PerformanceLogger,
 	attackProtection *security.AttackProtection, inputValidator *security.InputValidator,
 	apiRateLimiter *security.APIRateLimiter, posConsensus *consensus.ProofOfStake,
@@ -225,7 +225,7 @@ func startAPIServer(bc interface{}, wm *wallet.WalletManager, mempool interface{
 	// Логируем информацию о компонентах безопасности
 	slog.Info("Security components integrated",
 		"attack_protection", "enabled",
-		"input_validation", "enabled", 
+		"input_validation", "enabled",
 		"rate_limiting", "enabled",
 		"consensus_algorithms", []string{"PoW", "PoS", "DPoS"},
 		"signature_algorithms", signatureManager.GetSupportedAlgorithms(),
