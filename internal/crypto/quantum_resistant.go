@@ -2,10 +2,11 @@ package crypto
 
 import (
 	"crypto/rand"
-	"crypto/sha3"
 	"encoding/hex"
 	"fmt"
 	"time"
+
+	"golang.org/x/crypto/sha3"
 )
 
 // QuantumResistantAlgorithm представляет квантово-устойчивый алгоритм
