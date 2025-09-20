@@ -211,7 +211,7 @@ func (c *Console) showPeers() {
 	for id, peer := range c.server.Peers {
 		fmt.Printf("ID: %s\n", id)
 		fmt.Printf("  Address: %s\n", peer.Address)
-		fmt.Printf("  Connected: %t\n", peer.IsConnected)
+		fmt.Printf("  Connected: %t\n", peer.IsConnected())
 		fmt.Printf("  Last Seen: %s\n", peer.LastSeen.Format(time.RFC3339))
 		fmt.Println()
 	}
