@@ -60,3 +60,9 @@ examples/websocket_simple_test.go
 # Temporary files
 tmp/
 temp/
+
+# Wallet files (contain private keys - security sensitive)
+**/wallets/
+**/wallet_*.json
+**/wallets.json
+wallet_data/
