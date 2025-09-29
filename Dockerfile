@@ -1,5 +1,5 @@
 # MiroChain Dockerfile
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Устанавливаем необходимые пакеты
 RUN apk add --no-cache git ca-certificates tzdata
